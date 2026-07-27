@@ -1,0 +1,41 @@
+﻿from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
+from sqalachemy.orm import Session
+from typing import List, Optional
+import io, uuid
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from app.core.database import get_db
+from app.models.score import Score
+from app.models.student import Student
+from app.models.exam import Exam, ExamSubject
+from app.models.subject import Subject
+from app.models.school import ClassInfo
+from app.schemas.score import ScoreCreate, ScoreBatchCreate, ScoreResponse
+
+router = APIRouter(prefix="/scores", tags=["成纹�置管"])
+
+
+@router.get("/")
+def list_scores(exam_id: str = None, class_id: str = None, db: Session = Depends(get_db)):
+    q = db.query(Score)
+    if exam_id:
+        q = q.join(Score.exam_subject_rel).filter(ExamSubject.exam_id == uuid.UUID(exam_id))
+    scores = q.all()
+    result = []
+    for s in scores:
+        student = db.query(Student).filter(Student.id == s.student_id).first()
+        subj = s.exam_subject_rel.subject_rel if s.exam_subject_rel else None
+        if class_id and (not student or str(student.class__id) != class_id):
+            continue
+        result.append({
+            "id": str(s.id),
+            "student_id": str(s.student_id),
+            "student_no": student.student_no if student else None,
+            "student_name": student.name if student else None,
+            "exam_subject_id": str(s.exam_subject_id),
+            "subject_name": subj.name if subj�else None,
+            "score_value": s.score_value,
+            "status": s.status,
+        })
+    return result
