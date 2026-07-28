@@ -1,26 +1,57 @@
-<script setup lang="ts">
-import { ref } from "vue"
+﻿<script setup lang="ts">
+import { ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { useAuthStore } from "@/stores"
-import { ElMessage } from "element-plus"
+import { ElMessage, ElDialog, ElForm, ElFormItem, ElInput, ElButton } from "element-plus"
 import { User, Lock } from "@element-plus/icons-vue"
 
 const router = useRouter()
 const auth = useAuthStore()
 
-const form = ref({ username: "admin", password: "admin123" })
+const form = ref({ username: "admin", password: "" })
 const loading = ref(false)
+
+// Force password change dialog
+const showChangePwd = ref(false)
+const pwdForm = ref({ old_password: "", new_password: "", confirm_password: "" })
+const pwdLoading = ref(false)
 
 async function handleLogin() {
   loading.value = true
   try {
     await auth.login(form.value.username, form.value.password)
-    ElMessage.success("登录成功")
-    router.push("/dashboard")
+    if (auth.needsPasswordChange) {
+      showChangePwd.value = true
+    } else {
+      ElMessage.success("登录成功")
+      router.push("/dashboard")
+    }
   } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || "登录失败")
   } finally {
     loading.value = false
+  }
+}
+
+async function handleChangePassword() {
+  if (pwdForm.value.new_password !== pwdForm.value.confirm_password) {
+    ElMessage.error("两次输入的新密码不一致")
+    return
+  }
+  if (pwdForm.value.new_password.length < 8) {
+    ElMessage.error("新密码至少8位")
+    return
+  }
+  pwdLoading.value = true
+  try {
+    await auth.changePassword(pwdForm.value.old_password, pwdForm.value.new_password)
+    ElMessage.success("密码修改成功")
+    showChangePwd.value = false
+    router.push("/dashboard")
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || "密码修改失败")
+  } finally {
+    pwdLoading.value = false
   }
 }
 </script>
@@ -50,8 +81,26 @@ async function handleLogin() {
           </el-button>
         </el-form-item>
       </el-form>
-      <div class="login-tip">默认账户: admin / admin123</div>
+      <div class="login-tip">首次登录请使用 admin / Admin@ChangeMe2026，系统将要求修改密码</div>
     </div>
+
+    <!-- Force Password Change Dialog -->
+    <el-dialog v-model="showChangePwd" title="首次登录 - 请修改密码" width="420px" :close-on-click-modal="false" :show-close="false">
+      <el-form :model="pwdForm" label-width="80px">
+        <el-form-item label="原密码">
+          <el-input v-model="pwdForm.old_password" type="password" show-password />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="pwdForm.new_password" type="password" show-password />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="pwdForm.confirm_password" type="password" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button type="primary" :loading="pwdLoading" @click="handleChangePassword">确认修改</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

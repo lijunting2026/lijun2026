@@ -1,4 +1,4 @@
-
+﻿
 import sys, os, uuid, random
 from datetime import date, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -19,7 +19,7 @@ Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 
 # Admin
-admin = User(username="admin", password_hash=get_password_hash("admin123"), display_name="管理员", role="admin", is_active=True)
+admin = User(username="admin", password_hash=get_password_hash("Admin@ChangeMe2026"), display_name="管理员", role="admin", is_active=True, needs_password_change=True)
 db.add(admin)
 # Teacher user
 teacher = User(username="teacher", password_hash=get_password_hash("teacher123"), display_name="张老师", role="teacher", is_active=True)
@@ -151,4 +151,5 @@ print(f"Students: {len(all_students)}")
 print(f"G1 Exams: {len(exam_defs)} (with trend: base_mean 0.60->0.70)")
 print(f"G2 Exams: {len(exam_defs_g2)}")
 print(f"Total score records: ~{(len(exam_defs)*6*120 + len(exam_defs_g2)*6*60)}")
+
 

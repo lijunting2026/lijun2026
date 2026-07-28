@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+﻿from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.deps import get_current_user
 import uuid
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate
+from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate, PasswordChangeRequest
 
 router = APIRouter(prefix="/auth", tags=["认证管理"])
 
@@ -19,8 +19,23 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     token = create_access_token({"sub": str(user.id), "role": user.role})
     return TokenResponse(access_token=token, user=UserResponse(
         id=str(user.id), username=user.username, display_name=user.display_name,
-        role=user.role, is_active=user.is_active
+        role=user.role, is_active=user.is_active, needs_password_change=user.needs_password_change
     ))
+
+@router.post("/change-password")
+def change_password(
+    data: PasswordChangeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(data.old_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="原密码错误")
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="新密码至少8位")
+    current_user.password_hash = get_password_hash(data.new_password)
+    current_user.needs_password_change = False
+    db.commit()
+    return {"message": "密码修改成功"}
 
 @router.post("/register", response_model=UserResponse)
 def register(
@@ -38,13 +53,14 @@ def register(
         password_hash=get_password_hash(data.password),
         display_name=data.display_name,
         role=data.role or "editor",
+        needs_password_change=True
     )
     db.add(user)
     db.commit()
     db.refresh(user)
     return UserResponse(
         id=str(user.id), username=user.username, display_name=user.display_name,
-        role=user.role, is_active=user.is_active
+        role=user.role, is_active=user.is_active, needs_password_change=user.needs_password_change
     )
 
 @router.get("/users")
@@ -57,7 +73,7 @@ def list_users(
     users = db.query(User).all()
     return [UserResponse(
         id=str(u.id), username=u.username, display_name=u.display_name,
-        role=u.role, is_active=u.is_active, created_at=u.created_at
+        role=u.role, is_active=u.is_active, needs_password_change=u.needs_password_change, created_at=u.created_at
     ) for u in users]
 
 @router.put("/users/{user_id}")
@@ -83,6 +99,7 @@ def update_user(
         user.display_name = data.display_name
     if data.password:
         user.password_hash = get_password_hash(data.password)
+        user.needs_password_change = False
     if data.role is not None:
         user.role = data.role
     if data.is_active is not None:
@@ -91,7 +108,7 @@ def update_user(
     db.refresh(user)
     return UserResponse(
         id=str(user.id), username=user.username, display_name=user.display_name,
-        role=user.role, is_active=user.is_active, created_at=user.created_at
+        role=user.role, is_active=user.is_active, needs_password_change=user.needs_password_change, created_at=user.created_at
     )
 
 @router.delete("/users/{user_id}")
@@ -110,4 +127,3 @@ def delete_user(
     db.delete(user)
     db.commit()
     return {"message": "已删除"}
-

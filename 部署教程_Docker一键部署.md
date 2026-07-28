@@ -228,7 +228,7 @@ docker-compose up -d postgres backend
 
 - [ ] SECRET_KEY 已改为随机字符串（不在用 change-this-to-...）
 - [ ] 数据库密码 POSTGRES_PASSWORD 已改为强密码
-- [ ] 默认管理员 dmin/admin123 已修改密码
+- [ ] 默认管理员 dmin/Admin@ChangeMe2026 已修改密码
 - [ ] DEBUG: "false"（已默认设为 false）
 - [ ] 不需要 AI 时 LLM_ENABLED 保持 false
 - [ ] 服务器防火墙已配置，非必要端口不对外开放

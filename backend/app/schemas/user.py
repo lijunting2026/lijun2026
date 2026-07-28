@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+﻿from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
@@ -18,6 +18,7 @@ class UserResponse(BaseModel):
     display_name: str
     role: str
     is_active: bool
+    needs_password_change: bool = False
     created_at: Optional[datetime] = None
 
     class Config:
@@ -27,6 +28,10 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+class PasswordChangeRequest(BaseModel):
+    old_password: str
+    new_password: str
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None

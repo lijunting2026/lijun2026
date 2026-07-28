@@ -1,4 +1,4 @@
-import axios from "axios"
+﻿import axios from "axios"
 import type {
   LoginResponse,
   Grade,
@@ -42,7 +42,7 @@ api.interceptors.response.use(
   }
 )
 
-// ======== Auth ========
+// =-======= Auth ==========
 export const authApi = {
   login(data: { username: string; password: string }) {
     return api.post<LoginResponse>("/auth/login", data)
@@ -50,12 +50,15 @@ export const authApi = {
   register(data: { username: string; password: string; display_name: string; role?: string }) {
     return api.post("/auth/register", data)
   },
+  changePassword(data: { old_password: string; new_password: string }) {
+    return api.post("/auth/change-password", data)
+  },
 }
 
-// ======== Schools ========
+// ========= Schools ===========
 export const schoolApi = {
   listGrades() {
-    return api.get<Grade[]>("/schools/grades")
+    return api.get<Grade>("/schools/grades")
   },
   createGrade(data: { name: string; sort_order?: number }) {
     return api.post<Grade>("/schools/grades", data)
@@ -64,7 +67,7 @@ export const schoolApi = {
     return api.delete(`/schools/grades/${id}`)
   },
   listClasses(gradeId?: string) {
-    return api.get<ClassInfo[]>("/schools/classes", { params: { grade_id: gradeId } })
+    return api.get<ClassInfo>("/schools/classes", { params: { grade_id: gradeId } })
   },
   createClass(data: { name: string; grade_id: string }) {
     return api.post<ClassInfo>("/schools/classes", data)
@@ -80,10 +83,10 @@ export const schoolApi = {
   },
 }
 
-// ======== Subjects ========
+// ========== Subjects ===========
 export const subjectApi = {
   list() {
-    return api.get<Subject[]>("/subjects")
+    return api.get<Subject>("/subjects")
   },
   create(data: { name: string; full_score?: number; sort_order?: number }) {
     return api.post<Subject>("/subjects", data)
@@ -96,7 +99,7 @@ export const subjectApi = {
   },
 }
 
-// ======== Students ========
+// ========== Students ===========
 export const studentApi = {
   list(params?: { class_id?: string; keyword?: string; skip?: number; limit?: number }) {
     return api.get<PaginatedResponse<Student>>("/students", { params })
@@ -118,10 +121,10 @@ export const studentApi = {
   },
 }
 
-// ======== Exams ========
+// ========== Exams ===========
 export const examApi = {
   list(params?: { grade_id?: string; exam_type?: string }) {
-    return api.get<Exam[]>("/exams", { params })
+    return api.get<Exam>("/exams", { params })
   },
   get(id: string) {
     return api.get<Exam>(`/exams/${id}`)
@@ -149,7 +152,7 @@ export const examApi = {
   },
 }
 
-// ======== Scores ========
+// ========== Scores ===========
 export const scoreApi = {
   list(params?: { exam_id?: string; class_id?: string; grade_id?: string; date_from?: string; date_to?: string; skip?: number; limit?: number }) {
     return api.get<PaginatedResponse<ScoreRecord>>("/scores", { params })
@@ -159,7 +162,7 @@ export const scoreApi = {
   },
 }
 
-// ======== Analysis ========
+// ========== Analysis ===========
 export const reportApi = {
   examWord(examId: string) {
     return `/api/v1/report/word/${examId}`
@@ -201,7 +204,7 @@ export const analysisApi = {
   },
 }
 
-// ======== User Management ========
+// ========== User Management ===========
 export const userApi = {
   list() {
     return api.get<any[]>("/auth/users")
@@ -215,4 +218,3 @@ export const userApi = {
 }
 
 export default api
-

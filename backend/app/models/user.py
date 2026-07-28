@@ -1,5 +1,6 @@
-from sqlalchemy import Column, String, Boolean
+﻿from sqlalchemy import Column, String, Boolean
 from app.models.base import BaseModel
+
 class User(BaseModel):
     __tablename__ = "users"
     username = Column(String(50), unique=True, nullable=False, index=True)
@@ -7,3 +8,4 @@ class User(BaseModel):
     display_name = Column(String(100), nullable=False)
     role = Column(String(20), nullable=False, default="admin")
     is_active = Column(Boolean, default=True)
+    needs_password_change = Column(Boolean, default=False)

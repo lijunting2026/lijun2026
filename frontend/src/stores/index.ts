@@ -1,4 +1,4 @@
-import { defineStore } from "pinia"
+﻿import { defineStore } from "pinia"
 import { ref, computed } from "vue"
 import { authApi } from "@/api"
 import type { UserInfo } from "@/types"
@@ -10,6 +10,7 @@ export const useAuthStore = defineStore("auth", () => {
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.role === "admin")
   const displayName = computed(() => user.value?.display_name || "")
+  const needsPasswordChange = computed(() => user.value?.needs_password_change ?? false)
 
   async function login(username: string, password: string) {
     const res = await authApi.login({ username, password })
@@ -19,6 +20,14 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.setItem("user", JSON.stringify(res.data.user))
   }
 
+  async function changePassword(oldPassword: string, newPassword: string) {
+    await authApi.changePassword({ old_password: oldPassword, new_password: newPassword })
+    if (user.value) {
+      user.value.needs_password_change = false
+      localStorage.setItem("user", JSON.stringify(user.value))
+    }
+  }
+
   function logout() {
     token.value = ""
     user.value = null
@@ -26,5 +35,5 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem("user")
   }
 
-  return { token, user, isLoggedIn, isAdmin, displayName, login, logout }
+  return { token, user, isLoggedIn, isAdmin, displayName, needsPasswordChange, login, changePassword, logout }
 })

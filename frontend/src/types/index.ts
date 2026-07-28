@@ -1,9 +1,10 @@
 ﻿export interface UserInfo {
-  id: string
-  username: string
-  display_name: string
-  role: string
-  is_active: boolean
+    id: string
+    username: string
+    display_name: string
+    role: string
+    is_active: boolean
+    needs_password_change: boolean
 }
 
 export interface LoginResponse {
@@ -250,3 +251,4 @@ export interface ClassOverview {
     avg_rate: number
   }>
 }
+
