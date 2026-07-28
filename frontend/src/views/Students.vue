@@ -38,14 +38,20 @@ interface TreeNode {
 
 const treeRef = ref()
 function expandAll() {
-  const nodes = treeRef.value?.store?.nodes
-  if (!nodes) return
-  for (const key in nodes) { nodes[key].expanded = true }
+  const tree = treeRef.value as any
+  if (!tree?.store?.nodesMap) return
+  Object.keys(tree.store.nodesMap).forEach((key: string) => {
+    const node = tree.store.nodesMap[key]
+    if (node && !node.isLeaf) node.expand()
+  })
 }
 function collapseAll() {
-  const nodes = treeRef.value?.store?.nodes
-  if (!nodes) return
-  for (const key in nodes) { nodes[key].expanded = false }
+  const tree = treeRef.value as any
+  if (!tree?.store?.nodesMap) return
+  Object.keys(tree.store.nodesMap).forEach((key: string) => {
+    const node = tree.store.nodesMap[key]
+    if (node && !node.isLeaf) node.collapse()
+  })
 }
 
 const treeData = computed<TreeNode[]>(() => {
