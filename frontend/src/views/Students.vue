@@ -97,7 +97,7 @@ const treeData = computed<TreeNode[]>(() => {
 async function loadGrades() {
   try {
     const res = await schoolApi.listGrades()
-    grades.value = res.data
+    grades.value = res.data as any
   } catch {
     ElMessage.error("加载年级失败")
   }
@@ -106,7 +106,7 @@ async function loadGrades() {
 async function loadAllClasses() {
   try {
     const res = await schoolApi.listClasses()
-    allClasses.value = res.data
+    allClasses.value = res.data as any
   } catch {
     // ignore
   }
@@ -177,7 +177,7 @@ async function handleTransfer() {
     transferDialogVisible.value = false
     transferStudent.value = null
     await Promise.all([loadAllStudents(), loadAllClasses()])
-  } catch (err: unknown) {
+  } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || err.message || "转班失败")
   } finally {
     transferring.value = false
@@ -204,7 +204,7 @@ async function save() {
     editingId.value = ""
     dialogVisible.value = false
     await Promise.all([loadAllStudents(), loadAllClasses()])
-  } catch (err: unknown) {
+  } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || err.message || "操作失败")
   }
 }
@@ -215,7 +215,7 @@ async function remove(id: string) {
     await studentApi.delete(id)
     ElMessage.success("已删除")
     await Promise.all([loadAllStudents(), loadAllClasses()])
-  } catch (err: unknown) {
+  } catch (err: any) {
     if (err !== "cancel") {
       ElMessage.error(err.response?.data?.detail || err.message || "删除失败")
     }
@@ -312,7 +312,7 @@ async function handleImport() {
     ElMessage.success(res.data.message)
     importDialogVisible.value = false
     await Promise.all([loadAllStudents(), loadAllClasses()])
-  } catch (err: unknown) {
+  } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || err.message || "导入失败")
   } finally {
     importing.value = false

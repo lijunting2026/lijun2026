@@ -14,7 +14,7 @@ async function loadSubjects() {
   loading.value = true
   try {
     const res = await subjectApi.list()
-    subjects.value = res.data
+    subjects.value = res.data as any
   } finally {
     loading.value = false
   }
@@ -43,7 +43,7 @@ async function save() {
     }
     dialogVisible.value = false
     await loadSubjects()
-  } catch (err: unknown) {
+  } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || err.message || "操作失败")
   }
 }
@@ -54,7 +54,7 @@ async function remove(id: string) {
     await subjectApi.delete(id)
     ElMessage.success("已删除")
     await loadSubjects()
-  } catch (err: unknown) {
+  } catch (err: any) {
     if (err !== 'cancel') {
       ElMessage.error(err.response?.data?.detail || err.message || "删除失败")
     }

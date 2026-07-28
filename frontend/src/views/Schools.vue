@@ -47,7 +47,7 @@ async function loadGrades() {
   loading.value = true
   try {
     const res = await schoolApi.listGrades()
-    grades.value = res.data
+    grades.value = res.data as any
   } catch {
     ElMessage.error("加载年级失败")
   } finally {
@@ -58,7 +58,7 @@ async function loadGrades() {
 async function loadAllClasses() {
   try {
     const res = await schoolApi.listClasses()
-    allClasses.value = res.data
+    allClasses.value = res.data as any
   } catch {
     // ignore
   }
@@ -88,7 +88,7 @@ async function saveGrade() {
     gradeDialog.value = false
     gradeForm.value = { name: "", sort_order: 0 }
     await loadGrades()
-  } catch (err: unknown) {
+  } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || err.message || "操作失败")
   }
 }
@@ -99,7 +99,7 @@ async function deleteGrade(id: string) {
     await schoolApi.deleteGrade(id)
     ElMessage.success("已删除")
     await Promise.all([loadGrades(), loadAllClasses()])
-  } catch (err: unknown) {
+  } catch (err: any) {
     if (err !== "cancel") {
       ElMessage.error(err.response?.data?.detail || err.message || "删除失败")
     }
@@ -130,7 +130,7 @@ async function saveClass() {
     classDialog.value = false
     classForm.value = { name: "", grade_id: "" }
     await loadAllClasses()
-  } catch (err: unknown) {
+  } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || err.message || "操作失败")
   }
 }
@@ -141,7 +141,7 @@ async function deleteClass(id: string) {
     await schoolApi.deleteClass(id)
     ElMessage.success("已删除")
     await loadAllClasses()
-  } catch (err: unknown) {
+  } catch (err: any) {
     if (err !== "cancel") {
       ElMessage.error(err.response?.data?.detail || err.message || "删除失败")
     }

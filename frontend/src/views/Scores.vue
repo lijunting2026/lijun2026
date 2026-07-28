@@ -71,21 +71,21 @@ const groupedByExam = computed<ExamGroup[]>(() => {
 async function loadExams() {
   try {
     const res = await examApi.list({ grade_id: filterGradeId.value || undefined })
-    exams.value = res.data
+    exams.value = res.data as any
   } catch { /* ignore */ }
 }
 
 async function loadGrades() {
   try {
     const res = await schoolApi.listGrades()
-    grades.value = res.data
+    grades.value = res.data as any
   } catch { /* ignore */ }
 }
 
 async function loadClasses() {
   try {
     const res = await schoolApi.listClasses()
-    classes.value = res.data
+    classes.value = res.data as any
   } catch { /* ignore */ }
 }
 

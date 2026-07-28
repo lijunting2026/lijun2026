@@ -13,6 +13,9 @@ import type {
   PaginatedResponse,
   TransferRequest,
   TransferResponse,
+  StudentScoreData,
+  DashboardData,
+  ClassOverview,
 } from "@/types"
 
 const api = axios.create({
@@ -48,7 +51,7 @@ export const authApi = {
     return api.post<LoginResponse>("/auth/login", data)
   },
   register(data: { username: string; password: string; display_name: string; role?: string }) {
-    return api.post<UserInfo>("/auth/register", data)
+    return api.post("/auth/register", data)
   },
   changePassword(data: { old_password: string; new_password: string }) {
     return api.post("/auth/change-password", data)
@@ -183,7 +186,6 @@ export const reportApi = {
     return `/api/v1/report/pdf/student/${studentId}`
   },
 }
-import type { ExamAnalysis, DistributionResponse, StudentScoreData, DashboardData, ClassOverview } from "@/types"
 
 export const analysisApi = {
   examAnalysis(examId: string) {
@@ -209,7 +211,7 @@ export const analysisApi = {
 // ========== User Management ===========
 export const userApi = {
   list() {
-    return api.get<UserInfo[]>("/auth/users")
+    return api.get<any[]>("/auth/users")
   },
   update(id: string, data: Record<string, any>) {
     return api.put("/auth/users/" + id, data)

@@ -114,21 +114,21 @@ const chartClassCompare = computed(() => {
 async function loadExams() {
   try {
     const res = await examApi.list({ grade_id: filterGradeId.value || undefined })
-    exams.value = res.data
+    exams.value = res.data as any
   } catch { /* ignore */ }
 }
 
 async function loadGrades() {
   try {
     const res = await schoolApi.listGrades()
-    grades.value = res.data
+    grades.value = res.data as any
   } catch { /* ignore */ }
 }
 
 async function loadSubjects() {
   try {
     const res = await subjectApi.list()
-    subjects.value = res.data
+    subjects.value = res.data as any
   } catch { /* ignore */ }
 }
 

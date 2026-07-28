@@ -29,9 +29,9 @@ async function loadData() {
       schoolApi.listGrades(),
       subjectApi.list(),
     ])
-    exams.value = examRes.data
-    grades.value = gradeRes.data
-    subjects.value = subjectRes.data
+    exams.value = examRes.data as any
+    grades.value = gradeRes.data as any
+    subjects.value = subjectRes.data as any
   } finally {
     loading.value = false
   }
@@ -90,7 +90,7 @@ async function save() {
     editingId.value = null
     dialogVisible.value = false
     await loadData()
-  } catch (err: unknown) {
+  } catch (err: any) {
     ElMessage.error(err.response?.data?.detail || err.message || "操作失败")
   }
 }
@@ -101,7 +101,7 @@ async function remove(id: string) {
     await examApi.delete(id)
     ElMessage.success("已删除")
     await loadData()
-  } catch (err: unknown) {
+  } catch (err: any) {
     if (err !== "cancel") {
       ElMessage.error(err.response?.data?.detail || err.message || "删除失败")
     }

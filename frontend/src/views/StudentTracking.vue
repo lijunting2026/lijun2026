@@ -14,18 +14,18 @@ const keyword = ref("")
 const loading = ref(false)
 const aiChatVisible = ref(false)
 const errorMsg = ref("")
-const studentData = ref<Record<string, any>>(null)
-const adviceData = ref<Record<string, any>>(null)
+const studentData = ref<any>(null)
+const adviceData = ref<any>(null)
 
-const chartTrend = ref<Record<string, any>>(null)
-const chartRadar = ref<Record<string, any>>(null)
+const chartTrend = ref<any>(null)
+const chartRadar = ref<any>(null)
 const trendOptions = ref<Record<string, any>>({})
 const radarOptions = ref<Record<string, any>>({})
 
 async function loadClasses() {
   try {
     const res = await schoolApi.listClasses()
-    classes.value = res.data
+    classes.value = res.data as any
   } catch {
     console.error("Failed to load classes")
   }
@@ -65,7 +65,7 @@ async function selectStudent() {
     studentData.value = sRes.data
     adviceData.value = aRes.data
     buildCharts()
-  } catch (err: unknown) {
+  } catch (err: any) {
     console.error("StudentTracking error:", err)
     errorMsg.value = err?.response?.data?.detail || err?.message || "获取学情数据失败"
     ElMessage.error(errorMsg.value)
