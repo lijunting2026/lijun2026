@@ -37,23 +37,24 @@ interface TreeNode {
 }
 
 const treeRef = ref()
+const expandedKeys = ref<string[]>([])
+
 function expandAll() {
-  const tree = treeRef.value as any
-  if (!tree?.store?.nodesMap) return
-  tree.store.nodesMap.forEach((node: any) => {
-    if (node.childNodes && node.childNodes.length > 0) {
-      node.expand()
-    }
-  })
+  const keys: string[] = []
+  const collect = (nodes: TreeNode[]) => {
+    nodes.forEach((n) => {
+      if (n.children && n.children.length > 0) {
+        keys.push(n.id)
+        collect(n.children)
+      }
+    })
+  }
+  collect(treeData.value)
+  expandedKeys.value = keys
 }
+
 function collapseAll() {
-  const tree = treeRef.value as any
-  if (!tree?.store?.nodesMap) return
-  tree.store.nodesMap.forEach((node: any) => {
-    if (node.childNodes && node.childNodes.length > 0) {
-      node.collapse()
-    }
-  })
+  expandedKeys.value = []
 }
 
 const treeData = computed<TreeNode[]>(() => {
@@ -341,7 +342,7 @@ onMounted(async () => {
         :data="treeData"
         :props="{ children: 'children', label: 'label' }"
         node-key="id"
-        default-expand-all
+        :default-expanded-keys="expandedKeys"
         :expand-on-click-node="false"
         v-loading="loading"
       >
