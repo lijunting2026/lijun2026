@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from "vue"
 import { studentApi, schoolApi } from "@/api"
 import type { Student, ClassInfo, Grade, TransferResponse } from "@/types"
 import { ElMessage, ElMessageBox } from "element-plus"
+import { downloadBlob } from "@/utils/download"
 
 const grades = ref<Grade[]>([])
 const allClasses = ref<ClassInfo[]>([])

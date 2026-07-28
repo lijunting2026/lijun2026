@@ -3,6 +3,7 @@ import { ref, onMounted, nextTick } from "vue"
 import { schoolApi, analysisApi } from "@/api"
 import type { ClassInfo } from "@/types"
 import { ElMessage } from "element-plus"
+import { downloadBlob } from "@/utils/download"
 import AIChatDialog from "@/components/AIChatDialog.vue"
 
 const classes = ref<ClassInfo[]>([])
@@ -44,16 +45,7 @@ async function exportClassPdf() {
   await downloadBlob("/api/v1/report/pdf/class/" + selectedClassId.value, classData.value?.class_name + "_班级分析报告.pdf")
 }
 
-async function downloadBlob(url: string, filename: string) {
-  const token = localStorage.getItem("token") || ""
-  const res = await fetch(url, { headers: { Authorization: "Bearer " + token } })
-  if (!res.ok) { ElMessage.error("导出失败"); return }
-  const blob = await res.blob()
-  const link = document.createElement("a"); link.href = URL.createObjectURL(blob)
-  link.download = filename; link.click()
-  URL.revokeObjectURL(link.href)
-  ElMessage.success("导出成功")
-}
+
 
 async function analyzeClass() {
   if (!selectedClassId.value) return

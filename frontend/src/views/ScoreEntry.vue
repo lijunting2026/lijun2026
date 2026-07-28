@@ -4,6 +4,7 @@ import { useRouter } from "vue-router"
 import { examApi, schoolApi, studentApi, scoreApi } from "@/api"
 import type { Exam, Student, ClassInfo } from "@/types"
 import { ElMessage, ElMessageBox } from "element-plus"
+import { downloadBlob } from "@/utils/download"
 
 const router = useRouter()
 const loading = ref(false)
