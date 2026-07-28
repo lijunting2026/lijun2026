@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, computed } from "vue"
 import { analysisApi, examApi, subjectApi, schoolApi } from "@/api"
 import type { Exam, Subject, Grade, ExamAnalysis, SubjectStats, ScoreDistribution } from "@/types"
@@ -312,7 +312,7 @@ function onGradeChange() {
         </el-card>
       </template>
 
-      <el-empty v-else description="请选择考试并点击开始分析" />
+      <el-empty v-else-if="!loading" description="请选择考试并点击开始分析" />
     </el-card>
   </div>
 
