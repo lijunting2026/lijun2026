@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+﻿from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -343,3 +343,135 @@ def delete_score(score_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "已删除"}
 
+
+@router.get("/summary")
+def score_summary(
+    exam_id: str = None,
+    grade_id: str = None,
+    class_id: str = None,
+    subject_id: str = None,
+    db: Session = Depends(get_db),
+):
+    """成绩聚合统计：按考试/年级/班级汇总平均分、及格率、优秀率等"""
+    from sqlalchemy import func
+    import statistics
+
+    q = db.query(Score)
+    q = q.join(Score.exam_subject).join(ExamSubject.exam).join(ExamSubject.subject)
+    q = q.join(Exam.grade)
+
+    if exam_id:
+        q = q.filter(Exam.id == _try_uuid(exam_id, "考试ID"))
+    if grade_id:
+        q = q.filter(Exam.grade_id == _try_uuid(grade_id, "年级ID"))
+    if class_id:
+        q = q.filter(Score.class_id == _try_uuid(class_id, "班级ID"))
+    if subject_id:
+        q = q.filter(ExamSubject.subject_id == _try_uuid(subject_id, "科目ID"))
+
+    scores = q.all()
+    if not scores:
+        return {
+            "exam_name": "", "grade_name": "", "total_students": 0,
+            "total_subjects": 0, "subject_summaries": [], "class_summaries": [],
+            "overall_avg": 0, "overall_pass_rate": 0
+        }
+
+    exam = scores[0].exam_subject.exam
+    exam_name = exam.name
+    grade_name = exam.grade.name if exam.grade else ""
+
+    # Group by subject
+    from collections import defaultdict
+    subj_data = defaultdict(list)
+    class_data = defaultdict(list)
+    all_students = set()
+
+    for s in scores:
+        subj_name = s.exam_subject.subject.name
+        subj_id = str(s.exam_subject.subject_id)
+        full_score = s.exam_subject.full_score
+        subj_data[(subj_id, subj_name, full_score)].append(s.score_value)
+        if s.class_id:
+            cls = s.class_info
+            cls_name = cls.name if cls else "未知"
+            class_data[(str(s.class_id), cls_name)].append(s.score_value)
+        all_students.add(str(s.student_id))
+
+    # Subject summaries
+    subject_summaries = []
+    for (sid, sname, full), vals in subj_data.items():
+        if not vals:
+            continue
+        sorted_vals = sorted(vals)
+        n = len(sorted_vals)
+        pass_count = sum(1 for v in vals if v >= full * 0.6)
+        excellence_count = sum(1 for v in vals if v >= full * 0.85)
+        fail_count = sum(1 for v in vals if v < full * 0.6)
+        median_val = sorted_vals[n // 2] if n % 2 else (sorted_vals[n // 2 - 1] + sorted_vals[n // 2]) / 2
+        mean_val = sum(vals) / n
+        variance = sum((v - mean_val) ** 2 for v in vals) / n if n > 1 else 0
+
+        subject_summaries.append({
+            "subject_id": sid,
+            "subject_name": sname,
+            "full_score": full,
+            "avg_score": round(mean_val, 1),
+            "max_score": max(vals),
+            "min_score": min(vals),
+            "median_score": round(median_val, 1),
+            "pass_count": pass_count,
+            "total_count": n,
+            "pass_rate": round(pass_count / n * 100, 1),
+            "excellence_count": excellence_count,
+            "excellence_rate": round(excellence_count / n * 100, 1),
+            "fail_count": fail_count,
+            "fail_rate": round(fail_count / n * 100, 1),
+            "std_dev": round(variance ** 0.5, 1),
+        })
+
+    # Class summaries
+    class_summaries = []
+    for (cid, cname), vals in class_data.items():
+        n = len(vals)
+        if n == 0:
+            continue
+        class_summaries.append({
+            "class_id": cid,
+            "class_name": cname,
+            "avg_score": round(sum(vals) / n, 1),
+            "max_score": max(vals),
+            "min_score": min(vals),
+            "total_count": n,
+            "rank": 0,
+        })
+    # Rank classes by avg_score
+    class_summaries.sort(key=lambda x: x["avg_score"], reverse=True)
+    for i, c in enumerate(class_summaries):
+        c["rank"] = i + 1
+
+    # Overall stats
+    all_vals = [s.score_value for s in scores]
+    overall_avg = round(sum(all_vals) / len(all_vals), 1) if all_vals else 0
+    full_scores_map = {str(s.exam_subject.subject_id): s.exam_subject.full_score for s in scores}
+    overall_pass = 0
+    student_subjects = defaultdict(list)
+    for s in scores:
+        student_subjects[str(s.student_id)].append((s.score_value, full_scores_map.get(str(s.exam_subject.subject_id), 100)))
+    for sid, subj_scores in student_subjects.items():
+        avg_pct = sum(v / fs for v, fs in subj_scores) / len(subj_scores) if subj_scores else 0
+        if avg_pct >= 0.6:
+            overall_pass += 1
+    total_students = len(all_students)
+    overall_pass_rate = round(overall_pass / total_students * 100, 1) if total_students else 0
+
+    return {
+        "exam_name": exam_name,
+        "grade_name": grade_name,
+        "total_students": total_students,
+        "total_subjects": len(subject_summaries),
+        "subject_summaries": subject_summaries,
+        "class_summaries": class_summaries,
+        "overall_avg": overall_avg,
+        "overall_pass_rate": overall_pass_rate,
+    }
