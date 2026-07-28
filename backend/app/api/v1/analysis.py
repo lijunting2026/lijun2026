@@ -8,6 +8,28 @@ from app.services.analytics.dashboard_service import DashboardService
 from app.services.analytics.student_tracking import StudentTrackingService, ClassAnalysisService
 
 
+
+
+from pydantic import BaseModel
+
+class ChatRequest(BaseModel):
+    message: str
+    context_type: str = "general"
+    context_id: str = None
+    session_id: str = None
+
+class ChatMessageResponse(BaseModel):
+    role: str
+    content: str
+    timestamp: str
+
+class ChatResponse(BaseModel):
+    response: str
+    context_type: str
+    timestamp: str
+    session_id: str = ""
+    history: list[ChatMessageResponse] = []
+
 router = APIRouter(prefix="/analysis", tags=["数据分析"])
 
 
@@ -279,3 +301,65 @@ def ai_chat(data: dict, db: Session = Depends(get_db)):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat")
+def chat_with_ai(
+    data: dict,
+    db: Session = Depends(get_db),
+):
+    from app.services.ai.chat_service import AIChatService
+    from app.models.chat import ChatMessage
+    import uuid
+
+    message = data.get("message", "")
+    context_type = data.get("context_type", "general")
+    context_id = data.get("context_id")
+    session_id = data.get("session_id") or str(uuid.uuid4())
+
+    service = AIChatService(db)
+
+    history = db.query(ChatMessage).filter(
+        ChatMessage.session_id == session_id
+    ).order_by(ChatMessage.created_at).all()
+
+    result = service.chat(message, context_type=context_type, context_id=context_id, history=history)
+
+    user_msg = ChatMessage(
+        user_id=None,
+        session_id=session_id,
+        role="user",
+        content=message,
+        context_type=context_type,
+        context_id=context_id,
+    )
+    db.add(user_msg)
+
+    ai_msg = ChatMessage(
+        user_id=None,
+        session_id=session_id,
+        role="assistant",
+        content=result.get("response", ""),
+        context_type=context_type,
+        context_id=context_id,
+    )
+    db.add(ai_msg)
+    db.commit()
+
+    history_resp = []
+    all_msgs = db.query(ChatMessage).filter(
+        ChatMessage.session_id == session_id
+    ).order_by(ChatMessage.created_at).all()
+    for m in all_msgs:
+        ts = ""
+        if m.created_at:
+            ts = m.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        history_resp.append({
+            "role": "assistant" if m.role == "assistant" else "user",
+            "content": m.content,
+            "timestamp": ts,
+        })
+
+    result["session_id"] = session_id
+    result["history"] = history_resp
+    return result

@@ -1,4 +1,4 @@
-import uuid, json, math, os as os_module
+﻿import uuid, json, math, os as os_module
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -20,7 +20,7 @@ class AIChatService:
         self.analysis_svc = AnalysisService(db)
         self.student_svc = StudentTrackingService(db)
 
-    def chat(self, message: str, context_type: str = "general", context_id: str = None) -> Dict[str, Any]:
+    def chat(self, message: str, context_type: str = "general", context_id: str = None, history: list = None) -> Dict[str, Any]:
         context_data = {}
 
         # Collect context based on type
@@ -47,7 +47,17 @@ class AIChatService:
         response = self._generate_response(message, context_type, context_data)
         return {"response": response, "context_type": context_type, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
-    def _call_llm(self, message: str, context_type: str, data: Dict) -> Optional[str]:
+    def _build_messages(self, system_prompt: str, message: str, history: list = None) -> list:
+        """Build message list with history for multi-turn conversation"""
+        msgs = [{"role": "system", "content": system_prompt}]
+        if history:
+            for h in history:
+                role = "assistant" if h.role == "assistant" else "user"
+                msgs.append({"role": role, "content": h.content})
+        msgs.append({"role": "user", "content": message})
+        return msgs
+
+    def _call_llm(self, message: str, context_type: str, data: Dict, history: list = None) -> Optional[str]:
         # Build system prompt from context
         system_prompt = "你是一个专业的考试成绩分析AI助手，擅长数据分析、学情诊断和学习建议。请基于提供的上下文数据，用中文回答用户的问题。回答要专业、简洁、有洞察力。"
 

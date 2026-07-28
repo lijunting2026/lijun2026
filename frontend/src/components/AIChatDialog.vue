@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, watch } from "vue"
 import { ElMessage } from "element-plus"
 
@@ -17,6 +17,7 @@ const messages = ref<Array<{ role: string; content: string }>>([
 const inputMessage = ref("")
 const sending = ref(false)
 const chatRef = ref<HTMLElement | null>(null)
+const sessionId = ref("")
 
 function close() {
   emit("update:visible", false)
@@ -54,11 +55,13 @@ async function send() {
         message: msg,
         context_type: props.contextType || "general",
         context_id: props.contextId || null,
+        session_id: sessionId.value || null,
       }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.detail || "请求失败")
     messages.value.push({ role: "ai", content: data.response })
+    if (data.session_id) { sessionId.value = data.session_id }
   } catch (err: any) {
     messages.value.push({ role: "ai", content: "抱歉，我暂时无法回答这个问题。请稍后再试。" })
     ElMessage.error("AI 响应失败: " + (err.message || ""))
@@ -77,6 +80,7 @@ function handleKeydown(e: KeyboardEvent) {
 // Reset when opened with new context
 watch(() => props.visible, (val) => {
   if (val && props.contextLabel) {
+    sessionId.value = ""
     messages.value = [
       { role: "ai", content: `你好！当前正在查看"${props.contextLabel}"。我可以帮你深入分析这些数据、优化报告内容，或者回答你的任何问题。` }
     ]
