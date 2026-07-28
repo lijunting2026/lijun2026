@@ -1,10 +1,10 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted } from "vue"
 import { authApi, userApi } from "@/api"
 import type { UserInfo } from "@/types"
-import { ElMessage, ElMessageBox } from "element-plus"
+import { ElMessage, ElMessageBox, ElTag, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElTable, ElTableColumn, ElCard, ElSwitch } from "element-plus"
 
-const users = ref<any[]>([])
+const users = ref<UserInfo[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const editingId = ref("")
@@ -57,6 +57,14 @@ function getRoleTag(role: string) {
   return role === "admin" ? "danger" : role === "teacher" ? "warning" : "info"
 }
 
+function formatDate(d: string) { return d ? d.slice(0, 10) + ' ' + d.slice(11, 19) : '-' }
+
+async function toggleActive(row: UserInfo) {
+  await userApi.update(row.id, { is_active: !row.is_active })
+  ElMessage.success(row.is_active ? '已禁用' : '已启用')
+  await loadUsers()
+}
+
 onMounted(loadUsers)
 </script>
 
@@ -86,7 +94,16 @@ onMounted(loadUsers)
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180" />
+        <el-table-column prop="created_at" label="创建时间" width="160">
+          <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
+        </el-table-column>
+        <el-table-column label="首次修改密码" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.needs_password_change ? 'warning' : 'success'" size="small">
+              {{ row.needs_password_change ? "待修改" : "已修改" }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180">
           <template #default="{ row }">
             <el-button size="small" @click="openEdit(row)">编辑</el-button>
