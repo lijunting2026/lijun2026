@@ -157,6 +157,9 @@ export const examApi = {
 
 // ========== Scores ===========
 export const scoreApi = {
+  batchDelete(data: { ids: string[] }) {
+    return api.post("/scores/batch-delete", data)
+  },
   list(params?: { exam_id?: string; class_id?: string; grade_id?: string; date_from?: string; date_to?: string; skip?: number; limit?: number }) {
     return api.get<PaginatedResponse<ScoreRecord>>("/scores", { params })
   },

@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, watch } from "vue"
 import { scoreApi, examApi, schoolApi } from "@/api"
 import type { ScoreRecord, Exam, ClassInfo, Grade } from "@/types"
-import { ElMessage } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 
 interface ExamGroup {
   exam_id: string
@@ -21,6 +21,8 @@ const exams = ref<Exam[]>([])
 const classes = ref<ClassInfo[]>([])
 const grades = ref<Grade[]>([])
 const loading = ref(false)
+const selectedIds = ref<string[]>([])
+const batchDeleting = ref(false)
 const activeExamNames = ref<string[]>([])
 const filterExamId = ref("")
 const filterClassId = ref("")
