@@ -36,6 +36,18 @@ interface TreeNode {
   class_id?: string
 }
 
+const treeRef = ref()
+function expandAll() {
+  const nodes = treeRef.value?.store?.nodes
+  if (!nodes) return
+  for (const key in nodes) { nodes[key].expanded = true }
+}
+function collapseAll() {
+  const nodes = treeRef.value?.store?.nodes
+  if (!nodes) return
+  for (const key in nodes) { nodes[key].expanded = false }
+}
+
 const treeData = computed<TreeNode[]>(() => {
   return grades.value.map((g) => ({
     id: "grade-" + g.id,
@@ -303,6 +315,10 @@ onMounted(async () => {
       <template #header>
         <div style="display: flex; align-items: center; justify-content: space-between">
           <span style="font-weight: 600">学生管理</span>
+          <div>
+            <el-button size="small" @click="expandAll">展开全部</el-button>
+            <el-button size="small" @click="collapseAll">折叠全部</el-button>
+          </div>
         </div>
       </template>
       <el-alert
