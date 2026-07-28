@@ -8,12 +8,12 @@ import AIChatDialog from "@/components/AIChatDialog.vue"
 
 const classes = ref<ClassInfo[]>([])
 const selectedClassId = ref("")
-const classData = ref<any>(null)
+const classData = ref<Record<string, any>>(null)
 const loading = ref(false)
 const aiChatVisible = ref(false)
 
-const chartExamTrend = ref<any>({})
-const chartSubjectBar = ref<any>({})
+const chartExamTrend = ref<Record<string, any>>({})
+const chartSubjectBar = ref<Record<string, any>>({})
 
 async function loadClasses() {
   const res = await schoolApi.listClasses()

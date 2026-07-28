@@ -84,7 +84,7 @@ async function saveScores() {
     if (scores.length === 0) { ElMessage.warning("没有可保存的成绩，请先输入分数"); return }
     await scoreApi.batchCreate({ exam_id: selectedExam.value.id, scores })
     ElMessage.success("成功保存 " + scores.length + " 条成绩")
-  } catch (err: any) { ElMessage.error(err.response?.data?.detail || "保存失败") }
+  } catch (err: unknown) { ElMessage.error(err.response?.data?.detail || "保存失败") }
   finally { saving.value = false }
 }
 
@@ -104,7 +104,7 @@ async function downloadTemplate(exportAll: any) {
     const a = document.createElement("a"); a.href = url
     a.download = (exportAll === true) ? (selectedExam.value.name + "_全部科目_成绩模板.xlsx") : (selectedExam.value.name + "_模板.xlsx")
     a.click(); URL.revokeObjectURL(url); ElMessage.success("模板已下载")
-  } catch (err: any) { ElMessage.error("下载模板失败: " + (err.message || "")) }
+  } catch (err: unknown) { ElMessage.error("下载模板失败: " + (err.message || "")) }
 }
 
 function openImportDialog() { importDialogVisible.value = true; importResult.value = ""; importFile.value = null }
@@ -119,7 +119,7 @@ async function submitImport() {
     const data = await res.json()
     if (!res.ok) { ElMessage.error(data.detail || "导入失败"); return }
     importResult.value = data.message; ElMessage.success(data.message); loadStudents()
-  } catch (err: any) { ElMessage.error("导入失败: " + (err.message || "")) }
+  } catch (err: unknown) { ElMessage.error("导入失败: " + (err.message || "")) }
   finally { importing.value = false }
 }
 

@@ -48,7 +48,7 @@ export const authApi = {
     return api.post<LoginResponse>("/auth/login", data)
   },
   register(data: { username: string; password: string; display_name: string; role?: string }) {
-    return api.post("/auth/register", data)
+    return api.post<UserInfo>("/auth/register", data)
   },
   changePassword(data: { old_password: string; new_password: string }) {
     return api.post("/auth/change-password", data)
@@ -183,31 +183,33 @@ export const reportApi = {
     return `/api/v1/report/pdf/student/${studentId}`
   },
 }
+import type { ExamAnalysis, DistributionResponse, StudentScoreData, DashboardData, ClassOverview } from "@/types"
+
 export const analysisApi = {
   examAnalysis(examId: string) {
-    return api.get<any>("/analysis/exam/" + examId)
+    return api.get<ExamAnalysis>("/analysis/exam/" + examId)
   },
   scoreDistribution(examSubjectId: string, bins?: number) {
-    return api.get<any>("/analysis/distribution/" + examSubjectId, { params: { bins } })
+    return api.get<DistributionResponse>("/analysis/distribution/" + examSubjectId, { params: { bins } })
   },
   getStudentAnalysis(studentId: string) {
-    return api.get<any>("/analysis/student/" + studentId)
+    return api.get<StudentScoreData>("/analysis/student/" + studentId)
   },
   getStudentAdvice(studentId: string) {
     return api.get<any>("/analysis/student/" + studentId + "/advice")
   },
   dashboard() {
-    return api.get<any>("/analysis/dashboard")
+    return api.get<DashboardData>("/analysis/dashboard")
   },
   getClassAnalysis(classId: string) {
-    return api.get<any>("/analysis/class/" + classId)
+    return api.get<ClassOverview>("/analysis/class/" + classId)
   },
 }
 
 // ========== User Management ===========
 export const userApi = {
   list() {
-    return api.get<any[]>("/auth/users")
+    return api.get<UserInfo[]>("/auth/users")
   },
   update(id: string, data: Record<string, any>) {
     return api.put("/auth/users/" + id, data)

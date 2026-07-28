@@ -150,7 +150,7 @@ async function handleTransfer() {
     transferDialogVisible.value = false
     transferStudent.value = null
     await Promise.all([loadAllStudents(), loadAllClasses()])
-  } catch (err: any) {
+  } catch (err: unknown) {
     ElMessage.error(err.response?.data?.detail || err.message || "转班失败")
   } finally {
     transferring.value = false
@@ -177,7 +177,7 @@ async function save() {
     editingId.value = ""
     dialogVisible.value = false
     await Promise.all([loadAllStudents(), loadAllClasses()])
-  } catch (err: any) {
+  } catch (err: unknown) {
     ElMessage.error(err.response?.data?.detail || err.message || "操作失败")
   }
 }
@@ -188,7 +188,7 @@ async function remove(id: string) {
     await studentApi.delete(id)
     ElMessage.success("已删除")
     await Promise.all([loadAllStudents(), loadAllClasses()])
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err !== "cancel") {
       ElMessage.error(err.response?.data?.detail || err.message || "删除失败")
     }
@@ -285,7 +285,7 @@ async function handleImport() {
     ElMessage.success(res.data.message)
     importDialogVisible.value = false
     await Promise.all([loadAllStudents(), loadAllClasses()])
-  } catch (err: any) {
+  } catch (err: unknown) {
     ElMessage.error(err.response?.data?.detail || err.message || "导入失败")
   } finally {
     importing.value = false

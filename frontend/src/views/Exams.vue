@@ -90,7 +90,7 @@ async function save() {
     editingId.value = null
     dialogVisible.value = false
     await loadData()
-  } catch (err: any) {
+  } catch (err: unknown) {
     ElMessage.error(err.response?.data?.detail || err.message || "操作失败")
   }
 }
@@ -101,7 +101,7 @@ async function remove(id: string) {
     await examApi.delete(id)
     ElMessage.success("已删除")
     await loadData()
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err !== "cancel") {
       ElMessage.error(err.response?.data?.detail || err.message || "删除失败")
     }
