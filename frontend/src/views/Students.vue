@@ -342,7 +342,7 @@ onMounted(async () => {
         :data="treeData"
         :props="{ children: 'children', label: 'label' }"
         node-key="id"
-        :default-expanded-keys="expandedKeys"
+        v-model:expanded-keys="expandedKeys"
         :expand-on-click-node="false"
         v-loading="loading"
       >
