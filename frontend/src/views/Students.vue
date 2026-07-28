@@ -39,24 +39,21 @@ interface TreeNode {
 const treeRef = ref()
 function expandAll() {
   const tree = treeRef.value as any
-  if (!tree) return
-  // Collect all node keys that have children from treeData
-  const keys: string[] = []
-  const collect = (nodes: TreeNode[]) => {
-    nodes.forEach((n) => {
-      if (n.children && n.children.length > 0) {
-        keys.push(n.id)
-        collect(n.children)
-      }
-    })
-  }
-  collect(treeData.value)
-  tree.setExpandedKeys(keys)
+  if (!tree?.store?.nodesMap) return
+  tree.store.nodesMap.forEach((node: any) => {
+    if (node.childNodes && node.childNodes.length > 0) {
+      node.expand()
+    }
+  })
 }
 function collapseAll() {
   const tree = treeRef.value as any
-  if (!tree) return
-  tree.setExpandedKeys([])
+  if (!tree?.store?.nodesMap) return
+  tree.store.nodesMap.forEach((node: any) => {
+    if (node.childNodes && node.childNodes.length > 0) {
+      node.collapse()
+    }
+  })
 }
 
 const treeData = computed<TreeNode[]>(() => {
@@ -340,6 +337,7 @@ onMounted(async () => {
         style="margin-bottom: 12px"
       />
       <el-tree
+        ref="treeRef"
         :data="treeData"
         :props="{ children: 'children', label: 'label' }"
         node-key="id"
