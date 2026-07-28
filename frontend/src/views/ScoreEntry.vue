@@ -73,7 +73,7 @@ async function saveScores() {
   await ElMessageBox.confirm("确定保存所有成绩？已有成绩将被覆盖。", "确认保存")
   saving.value = true
   try {
-    const scores: Array<Record<string, any>> = []
+    const scores: Array<{ student_id: string; exam_subject_id: string; score_value: number }> = []
     for (const s of students.value) {
       for (const es of examSubjects.value) {
         const v = scoreMap.value[s.id]?.[es.id] ?? 0

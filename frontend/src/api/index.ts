@@ -1,4 +1,4 @@
-﻿import axios from "axios"
+import axios from "axios"
 import type {
   LoginResponse,
   Grade,
@@ -135,6 +135,15 @@ export const examApi = {
   }) {
     return api.post<Exam>("/exams", data)
   },
+  update(id: string, data: {
+    name: string
+    exam_date: string
+    exam_type: string
+    grade_id: string
+    subjects: Array<{ subject_id: string; full_score: number; weight?: number }>
+  }) {
+    return api.put<Exam>("/exams/" + id, data)
+  },
   delete(id: string) {
     return api.delete(`/exams/${id}`)
   },
@@ -151,6 +160,26 @@ export const scoreApi = {
 }
 
 // ======== Analysis ========
+export const reportApi = {
+  examWord(examId: string) {
+    return `/api/v1/report/word/${examId}`
+  },
+  examPdf(examId: string) {
+    return `/api/v1/report/pdf/${examId}`
+  },
+  classWord(classId: string) {
+    return `/api/v1/report/word/class/${classId}`
+  },
+  classPdf(classId: string) {
+    return `/api/v1/report/pdf/class/${classId}`
+  },
+  studentWord(studentId: string) {
+    return `/api/v1/report/word/student/${studentId}`
+  },
+  studentPdf(studentId: string) {
+    return `/api/v1/report/pdf/student/${studentId}`
+  },
+}
 export const analysisApi = {
   examAnalysis(examId: string) {
     return api.get<any>("/analysis/exam/" + examId)
@@ -177,8 +206,8 @@ export const userApi = {
   list() {
     return api.get<any[]>("/auth/users")
   },
-  update(id: string, data: any) {
-    return api.put<any>("/auth/users/" + id, data)
+  update(id: string, data: Record<string, any>) {
+    return api.put("/auth/users/" + id, data)
   },
   delete(id: string) {
     return api.delete("/auth/users/" + id)
@@ -186,3 +215,4 @@ export const userApi = {
 }
 
 export default api
+

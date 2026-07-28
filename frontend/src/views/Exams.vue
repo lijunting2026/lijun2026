@@ -12,6 +12,7 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const filterGradeId = ref("")
 const filterType = ref("")
+const editingId = ref<string | null>(null)
 const form = ref({
   name: "",
   exam_date: "",
@@ -34,6 +35,24 @@ async function loadData() {
   } finally {
     loading.value = false
   }
+}
+
+
+
+function openEdit(exam: any) {
+  form.value = {
+    name: exam.name,
+    exam_date: exam.exam_date || "",
+    exam_type: exam.exam_type,
+    grade_id: exam.grade_id,
+    subjects: (exam.exam_subjects || []).map((s: any) => ({
+      subject_id: s.subject_id,
+      full_score: s.full_score,
+      weight: s.weight,
+    })),
+  }
+  editingId.value = exam.id
+  dialogVisible.value = true
 }
 
 function openCreate() {
@@ -61,12 +80,18 @@ async function save() {
     return
   }
   try {
-    await examApi.create(form.value)
-    ElMessage.success("添加成功")
+    if (editingId.value) {
+      await examApi.update(editingId.value, form.value)
+      ElMessage.success("更新成功")
+    } else {
+      await examApi.create(form.value)
+      ElMessage.success("创建成功")
+    }
+    editingId.value = null
     dialogVisible.value = false
     await loadData()
   } catch (err: any) {
-    ElMessage.error(err.response?.data?.detail || err.message || "创建失败")
+    ElMessage.error(err.response?.data?.detail || err.message || "操作失败")
   }
 }
 
@@ -81,6 +106,10 @@ async function remove(id: string) {
       ElMessage.error(err.response?.data?.detail || err.message || "删除失败")
     }
   }
+}
+
+function onDialogClose() {
+  editingId.value = null
 }
 
 onMounted(loadData)
@@ -116,13 +145,14 @@ onMounted(loadData)
         </el-table-column>
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
+            <el-button size="small" @click="openEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="remove(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" title="创建考试" width="600px">
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑考试' : '创建考试'" width="600px" @close="onDialogClose">
       <el-form :model="form" label-width="80px">
         <el-form-item label="考试名称">
           <el-input v-model="form.name" />
@@ -159,7 +189,7 @@ onMounted(loadData)
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="save">创建</el-button>
+        <el-button type="primary" @click="save">{{ editingId ? '更新' : '创建' }}</el-button>
       </template>
     </el-dialog>
   </div>

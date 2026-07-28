@@ -19,6 +19,42 @@ async function loadClasses() {
   classes.value = res.data
 }
 
+async function exportClassData() {
+  if (!classData.value) return
+  const token = localStorage.getItem("token") || ""
+  const res = await fetch("/api/v1/analysis/class/" + selectedClassId.value + "/export", {
+    headers: { Authorization: "Bearer " + token }
+  })
+  if (!res.ok) { ElMessage.error("导出失败"); return }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a"); a.href = url
+  a.download = classData.value.class_name + "_班级分析.xlsx"; a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success("导出成功")
+}
+
+async function exportClassWord() {
+  if (!selectedClassId.value) return
+  await downloadBlob("/api/v1/report/word/class/" + selectedClassId.value, classData.value?.class_name + "_班级分析报告.docx")
+}
+
+async function exportClassPdf() {
+  if (!selectedClassId.value) return
+  await downloadBlob("/api/v1/report/pdf/class/" + selectedClassId.value, classData.value?.class_name + "_班级分析报告.pdf")
+}
+
+async function downloadBlob(url: string, filename: string) {
+  const token = localStorage.getItem("token") || ""
+  const res = await fetch(url, { headers: { Authorization: "Bearer " + token } })
+  if (!res.ok) { ElMessage.error("导出失败"); return }
+  const blob = await res.blob()
+  const link = document.createElement("a"); link.href = URL.createObjectURL(blob)
+  link.download = filename; link.click()
+  URL.revokeObjectURL(link.href)
+  ElMessage.success("导出成功")
+}
+
 async function analyzeClass() {
   if (!selectedClassId.value) return
   loading.value = true
@@ -88,6 +124,9 @@ onMounted(loadClasses)
               <el-option v-for="c in classes" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
             <el-button type="primary" :disabled="!selectedClassId" :loading="loading" @click="analyzeClass">分析</el-button>
+            <el-button v-if="classData" type="success" @click="exportClassData">Excel</el-button>
+            <el-button v-if="classData" type="primary" @click="exportClassWord">Word</el-button>
+            <el-button v-if="classData" type="danger" @click="exportClassPdf">PDF</el-button>
           </div>
         </div>
       </template>
@@ -193,3 +232,4 @@ onMounted(loadClasses)
 .chart-card { margin-bottom: 0; }
 .chart-card :deep(.el-card__body) { padding: 8px; }
 </style>
+

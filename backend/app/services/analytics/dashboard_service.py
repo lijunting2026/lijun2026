@@ -141,6 +141,21 @@ class DashboardService:
                     "desc": "得分率偏低" if rate < 45 else "需加强",
                 })
 
+        # Regression alerts - compare with previous exam
+        regression_alerts = []
+        if len(exams_data) >= 2:
+            latest = exams_data[0]
+            previous = exams_data[1]
+            drop = previous["avg_rate"] - latest["avg_rate"]
+            if drop > 5:
+                regression_alerts.append({
+                    "exam_name": latest["exam_name"],
+                    "drop": round(drop, 1),
+                    "level": "danger" if drop > 10 else "warning",
+                    "desc": "较上次下降%d.%d个百分点" % (int(drop), int((drop % 1) * 10)),
+                })
+        
+
         # Class ranking
         class_rows = (
             self.db.query(
@@ -167,6 +182,7 @@ class DashboardService:
         class_ranking = [{"grade_name": gn, "classes": cl} for gn, cl in class_ranking_dict.items()]
 
         result = {
+            "regression_alerts": regression_alerts,
             "stats": {
                 "grades": grade_count, "classes": class_count, "subjects": subject_count,
                 "students": student_count, "exams": exam_count, "scores": score_count,

@@ -4,8 +4,13 @@ from alembic import context
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from app.core.database import Base
+from app.core.config import settings
 from app import models
 config = context.config
+
+# Override alembic.ini database URL with app settings
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 target_metadata = Base.metadata

@@ -35,6 +35,7 @@ def _seed_test_data(db_session):
     stu1 = Student(id=uuid.uuid4(), student_no="T001", name="测试学生A", gender="男", class_id=c1.id)
     stu2 = Student(id=uuid.uuid4(), student_no="T002", name="测试学生B", gender="女", class_id=c1.id)
     db_session.add_all([stu1, stu2])
+    db_session.flush()
 
     # Exam
     exam = Exam(
@@ -50,12 +51,13 @@ def _seed_test_data(db_session):
     es1 = ExamSubject(id=uuid.uuid4(), exam_id=exam.id, subject_id=s1.id, full_score=150, weight=1)
     es2 = ExamSubject(id=uuid.uuid4(), exam_id=exam.id, subject_id=s2.id, full_score=150, weight=1)
     db_session.add_all([es1, es2])
+    db_session.flush()
 
-    # Scores
-    sc1 = Score(id=uuid.uuid4(), student_id=stu1.id, exam_subject_id=es1.id, score_value=120.0, status="正常")
-    sc2 = Score(id=uuid.uuid4(), student_id=stu1.id, exam_subject_id=es2.id, score_value=130.0, status="正常")
-    sc3 = Score(id=uuid.uuid4(), student_id=stu2.id, exam_subject_id=es1.id, score_value=90.0, status="正常")
-    sc4 = Score(id=uuid.uuid4(), student_id=stu2.id, exam_subject_id=es2.id, score_value=110.0, status="正常")
+    # Scores - all students in class c1
+    sc1 = Score(id=uuid.uuid4(), student_id=stu1.id, exam_subject_id=es1.id, score_value=120.0, status="正常", class_id=c1.id)
+    sc2 = Score(id=uuid.uuid4(), student_id=stu1.id, exam_subject_id=es2.id, score_value=130.0, status="正常", class_id=c1.id)
+    sc3 = Score(id=uuid.uuid4(), student_id=stu2.id, exam_subject_id=es1.id, score_value=90.0, status="正常", class_id=c1.id)
+    sc4 = Score(id=uuid.uuid4(), student_id=stu2.id, exam_subject_id=es2.id, score_value=110.0, status="正常", class_id=c1.id)
     db_session.add_all([sc1, sc2, sc3, sc4])
 
     db_session.commit()
@@ -77,6 +79,7 @@ def _seed_test_data(db_session):
 
 
 # ==================== Subjects API ====================
+
 
 class TestSubjects:
     def test_list_subjects(self, client):
@@ -117,6 +120,7 @@ class TestSubjects:
 
 
 # ==================== Schools API ====================
+
 
 class TestSchools:
     def test_list_grades(self, client):
@@ -191,6 +195,7 @@ class TestSchools:
 
 # ==================== Analysis Dashboard API ====================
 
+
 class TestAnalysis:
     def test_dashboard_returns_stats(self, client):
         resp = client.get("/api/v1/analysis/dashboard")
@@ -252,3 +257,33 @@ class TestAnalysis:
         assert "direction" in data["trend"]
         assert "description" in data["trend"]
         assert data["trend"]["direction"] in ("up", "down", "stable")
+
+# ==================== Exam Update API ====================
+
+class TestExamUpdate:
+    def test_update_exam(self, client, _seed_test_data):
+        eid = _seed_test_data["exam_id"]
+        sid1 = _seed_test_data["subject1_id"]
+        resp = client.put(f"/api/v1/exams/{eid}", json={
+            "name": "更新考试名称",
+            "exam_date": "2026-07-15",
+            "exam_type": "期中",
+            "grade_id": _seed_test_data["grade1_id"],
+            "subjects": [{"subject_id": sid1, "full_score": 100, "weight": 1}],
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == "更新考试名称"
+        assert data["exam_type"] == "期中"
+        assert len(data["exam_subjects"]) == 1
+
+    def test_get_nonexistent_exam(self, client):
+        resp = client.get("/api/v1/exams/00000000-0000-0000-0000-000000000000")
+        assert resp.status_code == 404
+
+    def test_update_nonexistent_exam(self, client):
+        resp = client.put("/api/v1/exams/00000000-0000-0000-0000-000000000000", json={
+            "name": "不存在", "exam_date": "2026-07-15", "exam_type": "月考",
+            "grade_id": "00000000-0000-0000-0000-000000000000", "subjects": [],
+        })
+        assert resp.status_code == 404

@@ -82,15 +82,15 @@ function buildCharts() {
 
     // Trend line chart
     const series = []
-    const examNames = exams.map((e) => e.exam_name)
+    const examNames = exams.map((e: any) => e.exam_name)
 
     for (const t of subjects) {
       if (!t.scores || !Array.isArray(t.scores)) continue
-      const data = examNames.map((name) => {
-        const found = t.scores.find((s) => s && s.exam_name === name)
+      const data = examNames.map((name: string) => {
+        const found = t.scores.find((s: any) => s && s.exam_name === name)
         return found ? found.rate : null
       })
-      if (data.some((v) => v !== null)) {
+      if (data.some((v: any) => v !== null)) {
         series.push({ name: t.subject_name, type: "line", data, smooth: true })
       }
     }
@@ -110,8 +110,8 @@ function buildCharts() {
     if (exams.length > 0) {
       const latest = exams[exams.length - 1]
       if (latest && latest.subjects) {
-        const indicators = latest.subjects.map((s) => ({ name: s.subject_name, max: 100 }))
-        const values = latest.subjects.map((s) => s.rate || 0)
+        const indicators = latest.subjects.map((s: any) => ({ name: s.subject_name, max: 100 }))
+        const values = latest.subjects.map((s: any) => s.rate || 0)
         if (indicators.length > 0) {
           radarOptions.value = {
             tooltip: { trigger: "item" },
@@ -141,27 +141,29 @@ function getPriorityType(p: string) {
 
 
 async function exportStudentData() {
-  if (!studentData.value) return
-  try {
-    const token = localStorage.getItem("token") || ""
-    const data = studentData.value
-    // Build CSV content
-    let csv = "学号,姓名,班级,考试,科目,得分,得分率\n"
-    for (const exam of data.exams || []) {
-      for (const subj of exam.subjects || []) {
-        csv += `${data.student_no},${data.student_name},${data.class_name},${exam.exam_name},${subj.subject_name},${subj.score ?? ""},${subj.rate ?? ""}\n`
-      }
-    }
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = data.student_name + "_\u5b66\u60c5.csv"
-    a.click()
-    URL.revokeObjectURL(url)
-  } catch {
-    ElMessage.error("\u5bfc\u51fa\u5931\u8d25")
-  }
+  if (!selectedStudentId.value) return
+  await downloadBlob("/api/v1/analysis/student/" + selectedStudentId.value + "/export", (studentData.value?.student_name || "学情") + "_学情分析.xlsx")
+}
+
+async function exportStudentWord() {
+  if (!selectedStudentId.value) return
+  await downloadBlob("/api/v1/report/word/student/" + selectedStudentId.value, (studentData.value?.student_name || "学情") + "_学情报告.docx")
+}
+
+async function exportStudentPdf() {
+  if (!selectedStudentId.value) return
+  await downloadBlob("/api/v1/report/pdf/student/" + selectedStudentId.value, (studentData.value?.student_name || "学情") + "_学情报告.pdf")
+}
+
+async function downloadBlob(url: string, filename: string) {
+  const token = localStorage.getItem("token") || ""
+  const res = await fetch(url, { headers: { Authorization: "Bearer " + token } })
+  if (!res.ok) { ElMessage.error("导出失败"); return }
+  const blob = await res.blob()
+  const link = document.createElement("a"); link.href = URL.createObjectURL(blob)
+  link.download = filename; link.click()
+  URL.revokeObjectURL(link.href)
+  ElMessage.success("导出成功")
 }
 
 onMounted(() => {
@@ -185,6 +187,9 @@ onMounted(() => {
             <el-select v-model="selectedStudentId" placeholder="选择学生" filterable style="width: 220px" @change="selectStudent">
               <el-option v-for="s in students" :key="s.id" :label="s.name + ' (' + s.student_no + ')'" :value="s.id" />
             </el-select>
+              <el-button v-if="studentData" type="success" @click="exportStudentData">Excel</el-button>
+              <el-button v-if="studentData" type="primary" @click="exportStudentWord">Word</el-button>
+              <el-button v-if="studentData" type="danger" @click="exportStudentPdf">PDF</el-button>
           </div>
         </div>
       </template>
@@ -267,7 +272,7 @@ onMounted(() => {
           </el-table>
         </el-card>
 
-        <el-button size="small" style="margin-bottom: 12px" @click="exportStudentData" v-if="studentData">导出学情(CSV)</el-button>
+        
 
         <!-- AI Advice -->
         <el-card shadow="hover" style="margin-top: 16px" v-if="adviceData">
@@ -314,7 +319,7 @@ onMounted(() => {
 
       <!-- Student list after search -->
       <template v-if="!studentData && students.length > 0 && !errorMsg">
-        <el-table :data="students" stripe @row-click="(row) => { selectedStudentId = row.id; selectStudent(); }" style="cursor: pointer" max-height="400">
+        <el-table :data="students" stripe @row-click="(row: any) => { selectedStudentId = row.id; selectStudent(); }" style="cursor: pointer" max-height="400">
           <el-table-column prop="student_no" label="学号" width="150" />
           <el-table-column prop="name" label="姓名" width="120" />
           <el-table-column prop="class_name" label="班级" />
@@ -343,3 +348,9 @@ onMounted(() => {
 .chart-card { margin-bottom: 0; }
 .chart-card :deep(.el-card__body) { padding: 8px; }
 </style>
+
+
+
+
+
+

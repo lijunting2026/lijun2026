@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+﻿from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 
 class Settings(BaseSettings):
@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+
+    # Security
+    BCRYPT_ROUNDS: int = 12
     CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:80", "http://127.0.0.1:5173"]
 
     # LLM settings for AI chat

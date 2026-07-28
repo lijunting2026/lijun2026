@@ -1,4 +1,4 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 import os
 import logging
@@ -55,6 +55,18 @@ app.add_middleware(
 )
 
 app.add_middleware(ErrorLogMiddleware)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    tb = traceback.format_exc()
+    logger.error("Unhandled %s: %s %s\n%s", type(exc).__name__, request.method, request.url.path, tb)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "服务器内部错误，请查看日志"},
+    )
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(schools.router, prefix="/api/v1")

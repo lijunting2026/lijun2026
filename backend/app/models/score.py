@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Column, Float, ForeignKey, String, Index
+from sqlalchemy import Column, Float, ForeignKey, String, Index
 from sqlalchemy.types import Uuid
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel

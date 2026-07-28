@@ -1,4 +1,4 @@
-﻿with open('app/api/v1/analysis.py', 'r', encoding="utf-8") as f:
+with open('app/api/v1/analysis.py', 'r', encoding="utf-8") as f:
     c = f.read()
 c = c.replace('\nreturn {\n        "stats"', '\n    return {\n        "stats"')
 old = '    return {\n        "stats": {\n            "grades": grade_count, "classes": class_count, "subjects": subject_count,\n            "students": student_count, "exams": exam_count, "scores": score_count,\n        },\n        "recent_exams": exams_data,\n        "subject_stats": subject_stats,\n    }'

@@ -139,3 +139,114 @@ export interface PaginatedResponse<T> {
   total: number
   items: T[]
 }
+
+
+// Dashboard types
+export interface DashboardStats {
+  grades: number
+  classes: number
+  subjects: number
+  students: number
+  exams: number
+  scores: number
+}
+
+export interface RecentExam {
+  exam_name: string
+  exam_date: string
+  avg_rate: number
+  student_count: number
+}
+
+export interface SubjectStat {
+  subject_name: string
+  full_score: number
+  avg_score: number
+  max_score: number
+  count: number
+}
+
+export interface RiskStudent {
+  student_name: string
+  student_no: string
+  avg_rate: number
+}
+
+export interface SubjectAlert {
+  subject_name: string
+  avg_score: number
+  level: string
+  desc: string
+}
+
+export interface ClassRankItem {
+  class_name: string
+  avg_rate: number
+}
+
+export interface ClassRanking {
+  grade_name: string
+  classes: ClassRankItem[]
+}
+
+export interface TrendInfo {
+  direction: string
+  description: string
+}
+
+export interface ExamTypeStats {
+  monthly: number
+  midterm: number
+  final: number
+}
+
+export interface DashboardData {
+  regression_alerts: any[]
+  stats: DashboardStats
+  recent_exams: RecentExam[]
+  subject_stats: SubjectStat[]
+  trend: TrendInfo
+  risk_students: RiskStudent[]
+  subject_alerts: SubjectAlert[]
+  class_ranking: ClassRanking[]
+  exam_type_stats: ExamTypeStats
+}
+
+export interface StudentTrend {
+  subject_name: string
+  scores: Array<{ exam_name: string; rate: number }>
+}
+
+export interface StudentScoreData {
+  student_name: string
+  exam_count: number
+  overall_trend: string
+  strengths: Array<{ subject_name: string; avg_rate: number }>
+  weaknesses: Array<{ subject_name: string; avg_rate: number }>
+  trends: StudentTrend[]
+  exams: Array<{
+    exam_name: string
+    exam_date: string
+    avg_rate: number
+    subjects: Array<{ subject_name: string; score: number; rate: number }>
+  }>
+}
+
+export interface ClassOverview {
+  class_name: string
+  grade_name: string
+  student_count: number
+  exam_count: number
+  subject_stats: Array<{
+    subject_name: string
+    avg_score: number
+    max_score: number
+    min_score: number
+    count: number
+  }>
+  exam_summary: Array<{
+    exam_name: string
+    exam_date: string
+    avg_rate: number
+  }>
+}

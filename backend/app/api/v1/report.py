@@ -57,6 +57,80 @@ def export_ppt(exam_id: str, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/word/class/{class_id}")
+def export_class_word(class_id: str, db: Session = Depends(get_db)):
+    try:
+        service = get_service(db)
+        buf = service.generate_class_word(class_id)
+        if not buf:
+            raise HTTPException(status_code=404, detail="班级数据不存在")
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename=class_analysis_report.docx"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/pdf/class/{class_id}")
+def export_class_pdf(class_id: str, db: Session = Depends(get_db)):
+    try:
+        service = get_service(db)
+        buf = service.generate_class_pdf(class_id)
+        if not buf:
+            raise HTTPException(status_code=404, detail="班级数据不存在")
+        return StreamingResponse(
+            buf,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=class_analysis_report.pdf"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/word/student/{student_id}")
+def export_student_word(student_id: str, db: Session = Depends(get_db)):
+    try:
+        service = get_service(db)
+        buf = service.generate_student_word(student_id)
+        if not buf:
+            raise HTTPException(status_code=404, detail="学生数据不存在")
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename=student_analysis_report.docx"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/pdf/student/{student_id}")
+def export_student_pdf(student_id: str, db: Session = Depends(get_db)):
+    try:
+        service = get_service(db)
+        buf = service.generate_student_pdf(student_id)
+        if not buf:
+            raise HTTPException(status_code=404, detail="学生数据不存在")
+        return StreamingResponse(
+            buf,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=student_analysis_report.pdf"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/excel/{exam_id}")
 def export_excel(exam_id: str, db: Session = Depends(get_db)):
     from app.services.analytics.analysis_service import AnalysisService

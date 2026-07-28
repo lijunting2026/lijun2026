@@ -164,6 +164,37 @@ onMounted(() => {
   loadExams()
 })
 
+async function exportAnalysis() {
+  if (!selectedExamId.value) return
+  await downloadBlob("/api/v1/analysis/export/" + selectedExamId.value, "分析结果.xlsx")
+}
+
+async function exportWord() {
+  if (!selectedExamId.value) return
+  await downloadBlob("/api/v1/report/word/" + selectedExamId.value, "分析报告.docx")
+}
+
+async function exportPdf() {
+  if (!selectedExamId.value) return
+  await downloadBlob("/api/v1/report/pdf/" + selectedExamId.value, "分析报告.pdf")
+}
+
+async function exportPpt() {
+  if (!selectedExamId.value) return
+  await downloadBlob("/api/v1/report/ppt/" + selectedExamId.value, "分析报告.pptx")
+}
+
+async function downloadBlob(url: string, filename: string) {
+  const token = localStorage.getItem("token") || ""
+  const res = await fetch(url, { headers: { Authorization: "Bearer " + token } })
+  if (!res.ok) { ElMessage.error("导出失败"); return }
+  const blob = await res.blob()
+  const link = document.createElement("a"); link.href = URL.createObjectURL(blob)
+  link.download = filename; link.click()
+  URL.revokeObjectURL(link.href)
+  ElMessage.success("导出成功")
+}
+
 function onGradeChange() {
   loadExams()
   selectedExamId.value = ""
@@ -186,6 +217,10 @@ function onGradeChange() {
               <el-option v-for="e in exams" :key="e.id" :label="e.name" :value="e.id" />
             </el-select>
             <el-button type="primary" :disabled="!selectedExamId" :loading="loading" @click="analyze">开始分析</el-button>
+            <el-button v-if="analysis" type="success" @click="exportAnalysis">Excel</el-button>
+              <el-button v-if="analysis" type="primary" @click="exportWord">Word</el-button>
+              <el-button v-if="analysis" type="danger" @click="exportPdf">PDF</el-button>
+              <el-button v-if="analysis" type="warning" @click="exportPpt">PPT</el-button>
           </div>
         </div>
       </template>

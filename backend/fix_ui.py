@@ -1,4 +1,4 @@
-﻿# Add global transitions to App.vue
+# Add global transitions to App.vue
 with open('../frontend/src/App.vue', 'r', encoding='utf-8') as f:
     content = f.read()
 

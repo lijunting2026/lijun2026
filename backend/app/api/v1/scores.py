@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -119,6 +119,25 @@ def batch_create_scores(data: ScoreBatchCreate, db: Session = Depends(get_db)):
         count += 1
     db.commit()
     return {"message": "成功保存 %d 条成绩" % count}
+
+
+
+from pydantic import BaseModel
+
+class BatchDeleteRequest(BaseModel):
+    ids: List[str]
+
+
+@router.post("/batch-delete")
+def batch_delete_scores(data: BatchDeleteRequest, db: Session = Depends(get_db)):
+    deleted = 0
+    for sid in data.ids:
+        score = db.query(Score).filter(Score.id == _try_uuid(sid, "成绩ID")).first()
+        if score:
+            db.delete(score)
+            deleted += 1
+    db.commit()
+    return {"message": "成功删除 %d 条成绩" % deleted, "deleted": deleted}
 
 
 @router.get("/export-template")

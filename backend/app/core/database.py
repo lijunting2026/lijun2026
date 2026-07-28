@@ -1,6 +1,9 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+﻿from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from app.core.config import settings
+
+# For PostgreSQL in production, set DATABASE_URL in .env:
+# DATABASE_URL=postgresql://user:password@host:5432/examdb
 
 # SQLite needs check_same_thread for FastAPI
 connect_args = {}
@@ -9,7 +12,10 @@ if settings.DATABASE_URL.startswith("sqlite"):
 
 engine = create_engine(settings.DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
+
+Base = Base
 
 def get_db():
     db = SessionLocal()

@@ -2,6 +2,8 @@
 import { ref, onMounted, computed } from "vue"
 import { useRouter } from "vue-router"
 import { analysisApi } from "@/api"
+import type { DashboardData, RecentExam, SubjectStat, ClassRanking } from "@/types"
+
 import { ElMessage } from "element-plus"
 import ChartBar from "@/components/ChartBar.vue"
 import ChartLine from "@/components/ChartLine.vue"
@@ -10,7 +12,7 @@ import ChartPie from "@/components/ChartPie.vue"
 
 const router = useRouter()
 const loading = ref(true)
-const dashboard = ref<any>(null)
+const dashboard = ref<DashboardData | null>(null)
 
 const chartExamTrend = computed(() => {
   const exams = dashboard.value?.recent_exams || []
@@ -131,7 +133,19 @@ function go(path: string) {
 </script>
 
 <template>
-  <div class="dashboard" v-loading="loading">
+  <div class="dashboard">
+<el-skeleton :loading="loading" animated>
+      <template #template>
+        <el-row :gutter="16" style="margin-bottom: 16px">
+          <el-col :xs="12" :sm="8" :md="4" v-for="i in 6" :key="i">
+            <el-card shadow="hover" class="kpi-card">
+              <el-skeleton-item variant="text" style="width: 60%; margin: 0 auto" />
+              <el-skeleton-item variant="text" style="width: 40%; margin: 4px auto" />
+            </el-card>
+          </el-col>
+        </el-row>
+      </template>
+      <template #default>
     <!-- KPI Cards -->
     <el-row :gutter="16" v-if="dashboard">
       <el-col :xs="12" :sm="8" :md="4">
@@ -221,6 +235,19 @@ function go(path: string) {
       </el-col>
     </el-row>
 
+    <!-- Regression Alerts -->
+    <el-row :gutter="16" style="margin-top: 16px" v-if="dashboard?.regression_alerts?.length">
+      <el-col :span="24">
+        <el-card shadow="hover">
+          <template #header><div style="display: flex; align-items: center; gap: 8px"><span style="font-weight: 600; color: #F56C6C">成绩退步预警</span><el-tag size="small" type="danger">需重点关注</el-tag></div></template>
+          <div v-for="alert in dashboard.regression_alerts" :key="alert.exam_name" class="alert-item">
+            <span>{{ alert.exam_name }}</span>
+            <el-tag :type="alert.level === 'danger' ? 'danger' : 'warning'" size="small">{{ alert.desc }}</el-tag>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- Alerts -->
     <el-row :gutter="16" style="margin-top: 16px" v-if="dashboard?.subject_alerts?.length || dashboard?.risk_students?.length">
       <el-col :xs="24" :sm="24" :md="12" v-if="dashboard?.subject_alerts?.length">
@@ -285,6 +312,8 @@ function go(path: string) {
         <el-button type="primary" @click="go('/analysis-group/class-analysis')" round>班级分析</el-button>
       </div>
     </el-card>
+      </template>
+    </el-skeleton>
   </div>
 </template>
 

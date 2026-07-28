@@ -45,7 +45,7 @@ def create_exam(data: ExamCreate, db: Session = Depends(get_db)):
     db.add(exam)
     db.flush()
     for s in data.subjects:
-        es = ExamSubject(exam_id=exam.id, subject_id=s.subject_id, full_score=s.full_score, weight=s.weight)
+        es = ExamSubject(exam_id=exam.id, subject_id=parse_uuid(s.subject_id), full_score=s.full_score, weight=s.weight)
         db.add(es)
     db.commit()
     db.refresh(exam)
@@ -64,4 +64,25 @@ def delete_exam(exam_id: str, db: Session = Depends(get_db)):
     db.delete(exam)
     db.commit()
     return {"message": "\u5df2\u5220\u9664"}
-
+@router.put("/{exam_id}", response_model=ExamResponse)
+def update_exam(exam_id: str, data: ExamCreate, db: Session = Depends(get_db)):
+    exam = db.query(Exam).filter(Exam.id == parse_uuid(exam_id)).first()
+    if not exam:
+        raise HTTPException(status_code=404, detail="考试不存在")
+    exam.name = data.name
+    exam.exam_date = data.exam_date
+    exam.exam_type = data.exam_type
+    exam.grade_id = parse_uuid(data.grade_id)
+    # Replace exam subjects
+    db.query(ExamSubject).filter(ExamSubject.exam_id == exam.id).delete()
+    for s in data.subjects:
+        es = ExamSubject(exam_id=exam.id, subject_id=parse_uuid(s.subject_id), full_score=s.full_score, weight=s.weight)
+        db.add(es)
+    db.commit()
+    db.refresh(exam)
+    grade_name = exam.grade.name if exam.grade else None
+    subjects = []
+    for es in exam.exam_subjects:
+        subj = db.query(Subject).filter(Subject.id == es.subject_id).first()
+        subjects.append(ExamSubjectResponse(id=str(es.id), subject_id=str(es.subject_id), subject_name=subj.name if subj else None, full_score=es.full_score, weight=es.weight))
+    return ExamResponse(id=str(exam.id), name=exam.name, exam_date=exam.exam_date, exam_type=exam.exam_type, grade_id=str(exam.grade_id), grade_name=grade_name, exam_subjects=subjects, created_at=exam.created_at)
