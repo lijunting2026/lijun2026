@@ -145,7 +145,7 @@ db.commit()
 db.close()
 
 print("=== Seed data created ===")
-print(f"Users: 2 (admin/admin123, teacher/teacher123)")
+print(f"Users: 2 (admin/Admin@ChangeMe2026, teacher/teacher123)")
 print(f"Grades: 3, Classes: 12, Subjects: 6")
 print(f"Students: {len(all_students)}")
 print(f"G1 Exams: {len(exam_defs)} (with trend: base_mean 0.60->0.70)")

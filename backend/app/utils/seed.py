@@ -1,4 +1,4 @@
-"""
+﻿"""
 \u6570\u636e\u5e93\u521d\u59cb\u5316\u548c\u6d4b\u8bd5\u6570\u636e\u586b\u5145\u811a\u672c
 \u7528\u6cd5: python -m app.utils.seed
 """
@@ -28,10 +28,10 @@ def seed():
     # Admin user
     admin = User(
         username="admin",
-        password_hash=get_password_hash("admin123"),
+        password_hash=get_password_hash("Admin@ChangeMe2026"),
         display_name="\u7ba1\u7406\u5458",
         role="admin",
-        is_active=True,
+        is_active=True,\n        needs_password_change=True,
     )
     db.add(admin)
 
@@ -122,7 +122,8 @@ def seed():
     db.commit()
     db.close()
     print("Seed data created successfully!")
-    print(f"  - 1 admin user (admin/admin123)")
+    print("  ⚠️ 首次登录请使用 admin / Admin@ChangeMe2026，系统将要求修改密码")
+    print(f"  - 1 admin user (admin/Admin@ChangeMe2026) - 首次登录需修改密码")
     print(f"  - 3 grades, 12 classes")
     print(f"  - 6 subjects")
     print(f"  - 120 students")
