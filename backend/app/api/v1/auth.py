@@ -1,4 +1,18 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+﻿from fastapi import APIRouter, Depends, HTTPException, status, Request
+from collections import defaultdict
+import time
+
+_LOGIN_ATTEMPTS = defaultdict(list)
+_LOGIN_LIMIT = 5
+_LOGIN_WINDOW = 300
+
+def _check_login_rate(ip: str):
+    now = time.time()
+    _LOGIN_ATTEMPTS[ip] = [t for t in _LOGIN_ATTEMPTS[ip] if now - t < _LOGIN_WINDOW]
+    if len(_LOGIN_ATTEMPTS[ip]) >= _LOGIN_LIMIT:
+        retry_after = int(_LOGIN_WINDOW - (now - _LOGIN_ATTEMPTS[ip][0]))
+        raise HTTPException(status_code=429, detail=f"Too many login attempts, retry in {retry_after}s")
+    _LOGIN_ATTEMPTS[ip].append(now)
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token
@@ -10,7 +24,9 @@ from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse,
 router = APIRouter(prefix="/auth", tags=["认证管理"])
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: UserLogin, db: Session = Depends(get_db)):
+def login(request: Request, data: UserLogin, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    _check_login_rate(client_ip)
     user = db.query(User).filter(User.username == data.username).first()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户名或密码错误")

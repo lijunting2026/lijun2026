@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from "vue-router"
+﻿import { createRouter, createWebHashHistory } from "vue-router"
 import { useAuthStore } from "@/stores"
 import MainLayout from "@/layout/MainLayout.vue"
 

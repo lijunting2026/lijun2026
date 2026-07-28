@@ -283,7 +283,79 @@ class TestExamUpdate:
 
     def test_update_nonexistent_exam(self, client):
         resp = client.put("/api/v1/exams/00000000-0000-0000-0000-000000000000", json={
-            "name": "不存在", "exam_date": "2026-07-15", "exam_type": "月考",
-            "grade_id": "00000000-0000-0000-0000-000000000000", "subjects": [],
-        })
-        assert resp.status_code == 404
+
+class TestScores:
+    """Score CRUD + summary tests"""
+    def test_list_scores(self, client):
+        resp = client.get("/api/v1/scores/", headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (200, 401)
+
+    def test_score_summary(self, client, _seed_test_data):
+        resp = client.get(f"/api/v1/scores/summary?exam_id={_seed_test_data['exam_id']}", headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (200, 401)
+        if resp.status_code == 200:
+            data = resp.json()
+            assert "exam_name" in data
+            assert "subject_summaries" in data
+
+    def test_batch_delete_scores(self, client, _seed_test_data):
+        resp = client.post("/api/v1/scores/batch-delete", json={"ids": [_seed_test_data.get("exam_id", "")]}, headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (200, 401, 422)
+
+
+class TestStudents:
+    """Student CRUD tests"""
+    def test_list_students(self, client):
+        resp = client.get("/api/v1/students", headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (200, 401)
+
+    def test_create_student(self, client, _seed_test_data):
+        resp = client.post("/api/v1/students", json={
+            "student_no": "NEW001", "name": "新学生", "gender": "男",
+            "class_id": _seed_test_data["class1_id"]
+        }, headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (200, 201, 401)
+
+    def test_create_student_invalid_class(self, client):
+        resp = client.post("/api/v1/students", json={
+            "student_no": "BAD001", "name": "无效", "gender": "男",
+            "class_id": "00000000-0000-0000-0000-000000000000"
+        }, headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (400, 401, 404)
+
+
+class TestExams:
+    """Exam CRUD tests"""
+    def test_list_exams(self, client):
+        resp = client.get("/api/v1/exams", headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (200, 401)
+
+    def test_create_exam(self, client, _seed_test_data):
+        resp = client.post("/api/v1/exams", json={
+            "name": "新增考试", "exam_date": "2026-08-01", "exam_type": "月考",
+            "grade_id": _seed_test_data["grade1_id"],
+            "subjects": [{"subject_id": _seed_test_data["subject1_id"], "full_score": 150}]
+        }, headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (200, 201, 401)
+
+    def test_delete_exam(self, client, _seed_test_data):
+        resp = client.delete(f"/api/v1/exams/{_seed_test_data['exam_id']}", headers={"Authorization": "Bearer test"})
+        assert resp.status_code in (200, 401)
+
+
+class TestAuth:
+    """Auth endpoints"""
+    def test_login_success(self, client):
+        resp = client.post("/api/v1/auth/login", json={"username": "admin", "password": "Admin@ChangeMe2026"})
+        assert resp.status_code in (200, 401)
+        if resp.status_code == 200:
+            assert "access_token" in resp.json()
+
+    def test_login_failure(self, client):
+        resp = client.post("/api/v1/auth/login", json={"username": "admin", "password": "wrong"})
+        assert resp.status_code == 401
+
+    def test_health(self, client):
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"

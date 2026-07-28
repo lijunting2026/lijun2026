@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted } from "vue"
 import { subjectApi } from "@/api"
 import type { Subject } from "@/types"
@@ -9,6 +9,10 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const editingId = ref("")
 const form = ref({ name: "", full_score: 100, sort_order: 0 })
+const formRules = {
+  name: [{ required: true, message: "请输入科目名称", trigger: "blur" }],
+  full_score: [{ required: true, message: "请输入满分", trigger: "blur" }],
+}
 
 async function loadSubjects() {
   loading.value = true
@@ -87,9 +91,9 @@ onMounted(loadSubjects)
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑科目' : '添加科目'" width="400px">
-      <el-form :model="form" label-width="80px">
+      <el-form :model="form" :rules="formRules" label-width="80px">
         <el-form-item label="科目名称">
-          <el-input v-model="form.name" />
+          <el-input v-model="form.name" placeholder="如：语文" />
         </el-form-item>
         <el-form-item label="满分">
           <el-input-number v-model="form.full_score" :min="1" :max="300" />

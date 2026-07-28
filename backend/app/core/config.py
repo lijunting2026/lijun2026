@@ -1,4 +1,5 @@
-﻿from pydantic_settings import BaseSettings, SettingsConfigDict
+﻿import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 
 class Settings(BaseSettings):
@@ -15,6 +16,14 @@ class Settings(BaseSettings):
     # Security
     BCRYPT_ROUNDS: int = 12
     CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:80", "http://127.0.0.1:5173"]
+
+    @property
+    def cors_origins_list(self) -> list:
+        """支持通过环境变量 CORS_ORIGINS 覆盖（逗号分隔）"""
+        env_origins = os.getenv("CORS_ORIGINS")
+        if env_origins:
+            return [o.strip() for o in env_origins.split(",") if o.strip()]
+        return self.CORS_ORIGINS
 
     # LLM settings for AI chat
     LLM_API_KEY: str = ""

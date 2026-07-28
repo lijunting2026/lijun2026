@@ -26,7 +26,7 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function openEdit(row: any) {
+function openEdit(row: Record<string, any>) {
   editingId.value = row.id
   form.value = { username: row.username, display_name: row.display_name, password: "", role: row.role }
   dialogVisible.value = true
