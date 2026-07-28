@@ -40,24 +40,27 @@ const treeRef = ref()
 
 function expandAll() {
   const tree = treeRef.value as any
-  if (!tree) return
-  const keys: string[] = []
-  const collect = (nodes: TreeNode[]) => {
-    nodes.forEach((n) => {
-      if (n.children && n.children.length > 0) {
-        keys.push(n.id)
-        collect(n.children)
-      }
-    })
+  if (!tree?.store) return
+  // node.expand() 展开当前节点及其子节点
+  const expandNode = (node: any) => {
+    if (node.childNodes && node.childNodes.length > 0) {
+      node.expand()
+      node.childNodes.forEach((child: any) => expandNode(child))
+    }
   }
-  collect(treeData.value)
-  tree.setExpandedKeys(keys)
+  expandNode(tree.store.root)
 }
 
 function collapseAll() {
   const tree = treeRef.value as any
-  if (!tree) return
-  tree.setExpandedKeys([])
+  if (!tree?.store) return
+  const collapseNode = (node: any) => {
+    if (node.childNodes && node.childNodes.length > 0) {
+      node.collapse()
+      node.childNodes.forEach((child: any) => collapseNode(child))
+    }
+  }
+  collapseNode(tree.store.root)
 }
 
 const treeData = computed<TreeNode[]>(() => {
