@@ -1,0 +1,22 @@
+﻿name: Docker Build
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "docker/**"
+      - "Dockerfile*"
+      - "docker-compose*.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: |
+          docker compose build

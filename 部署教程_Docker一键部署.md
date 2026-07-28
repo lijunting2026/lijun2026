@@ -213,7 +213,16 @@ docker-compose up -d postgres backend
 # 然后在本机运行前端：cd frontend && npm run dev
 `
 
-### 生产环境去掉热加载卷挂载
+### 生产环境部署（推荐）
+
+`ash
+# 使用生产配置（去掉开发热加载卷）
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+`
+
+生产配置会移除 backend 和 frontend 的 volumes 挂载，使用镜像内代码而非本地文件热加载。
+
+### 生产环境### 生产环境去掉热加载卷挂载
 编辑 docker-compose.yml，删除 backend 的 volumes 配置（保留数据不丢失）：
 `yaml
   backend:
@@ -232,3 +241,4 @@ docker-compose up -d postgres backend
 - [ ] DEBUG: "false"（已默认设为 false）
 - [ ] 不需要 AI 时 LLM_ENABLED 保持 false
 - [ ] 服务器防火墙已配置，非必要端口不对外开放（参考 `docker/防火墙配置指南.md`）
+

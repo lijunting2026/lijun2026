@@ -1,0 +1,16 @@
+﻿version: "3.8"
+
+services:
+  backend:
+    # 生产环境：移除开发热加载卷挂载
+    volumes: []
+    # 如果需要保留上传文件持久化，可挂载数据目录
+    # volumes:
+    #   - exam_data:/app/data
+
+  frontend:
+    volumes: []
+
+volumes:
+  postgres_data:
+  # exam_data:

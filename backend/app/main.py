@@ -12,15 +12,33 @@ from app.core.database import init_db
 from app.api.v1 import auth, schools, students, subjects, exams, scores, analysis, report
 
 
-# Setup error logging
-LOG_FILE = "logs/error.log"
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.ERROR,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+# Setup structured logging
+import sys as _sys
+LOG_DIR = "logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
+
+# File handler (all levels)
+file_handler = logging.handlers.RotatingFileHandler(
+    os.path.join(LOG_DIR, "app.log"), maxBytes=10*1024*1024, backupCount=5
 )
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(logging.Formatter(LOG_FORMAT, LOG_DATEFMT))
+
+# Error file handler
+error_handler = logging.handlers.RotatingFileHandler(
+    os.path.join(LOG_DIR, "error.log"), maxBytes=10*1024*1024, backupCount=3
+)
+error_handler.setLevel(logging.ERROR)
+error_handler.setFormatter(logging.Formatter(LOG_FORMAT, LOG_DATEFMT))
+
+# Console handler
+console_handler = logging.StreamHandler(_sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter(LOG_FORMAT, LOG_DATEFMT))
+
+logging.basicConfig(level=logging.INFO, handlers=[file_handler, error_handler, console_handler])
 logger = logging.getLogger("exam_analysis")
 
 
@@ -55,6 +73,21 @@ app.add_middleware(
 )
 
 app.add_middleware(ErrorLogMiddleware)
+
+
+@app.get("/health")
+def health():
+    """健康检查接口"""
+    import platform
+    return {
+        "status": "ok",
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "timestamp": _dt.now().isoformat(),
+        "python": platform.python_version(),
+        "debug": settings.DEBUG,
+        "llm_enabled": settings.LLM_ENABLED,
+    }
 
 
 @app.exception_handler(Exception)
