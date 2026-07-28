@@ -252,3 +252,44 @@ export interface ClassOverview {
   }>
 }
 
+
+
+// Score Summary types
+export interface SubjectSummary {
+  subject_id: string
+  subject_name: string
+  full_score: number
+  avg_score: number
+  max_score: number
+  min_score: number
+  median_score: number
+  pass_count: number
+  total_count: number
+  pass_rate: number
+  excellence_count: number
+  excellence_rate: number
+  fail_count: number
+  fail_rate: number
+  std_dev: number
+}
+
+export interface ClassSummaryItem {
+  class_id: string
+  class_name: string
+  avg_score: number
+  max_score: number
+  min_score: number
+  total_count: number
+  rank: number
+}
+
+export interface ScoreSummaryResponse {
+  exam_name: string
+  grade_name: string
+  total_students: number
+  total_subjects: number
+  subject_summaries: SubjectSummary[]
+  class_summaries: ClassSummaryItem[]
+  overall_avg: number
+  overall_pass_rate: number
+}
