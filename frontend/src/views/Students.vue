@@ -37,9 +37,10 @@ interface TreeNode {
 }
 
 const treeRef = ref()
-const expandedKeys = ref<string[]>([])
 
 function expandAll() {
+  const tree = treeRef.value as any
+  if (!tree) return
   const keys: string[] = []
   const collect = (nodes: TreeNode[]) => {
     nodes.forEach((n) => {
@@ -50,11 +51,13 @@ function expandAll() {
     })
   }
   collect(treeData.value)
-  expandedKeys.value = keys
+  tree.setExpandedKeys(keys)
 }
 
 function collapseAll() {
-  expandedKeys.value = []
+  const tree = treeRef.value as any
+  if (!tree) return
+  tree.setExpandedKeys([])
 }
 
 const treeData = computed<TreeNode[]>(() => {
@@ -342,7 +345,7 @@ onMounted(async () => {
         :data="treeData"
         :props="{ children: 'children', label: 'label' }"
         node-key="id"
-        v-model:expanded-keys="expandedKeys"
+        default-expand-all
         :expand-on-click-node="false"
         v-loading="loading"
       >
