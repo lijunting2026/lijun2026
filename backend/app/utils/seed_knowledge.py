@@ -5,12 +5,14 @@ from app.models.exam_detail import SubjectKnowledgePoint
 
 
 def seed_knowledge_points():
-    """为每个科目创建知识点（幂等：清空旧数据后重新填充）"""
+    """为每个科目创建知识点（幂等：仅当知识库为空时填充预设，绝不覆盖用户数据）"""
     db = SessionLocal()
 
-    # 清空旧数据，确保每次启动时重新填充
-    db.query(SubjectKnowledgePoint).delete()
-    db.commit()
+    # 仅当知识库为空时填充预设数据，避免覆盖用户导入/录入的知识点
+    if db.query(SubjectKnowledgePoint).count() > 0:
+        print("知识点库已有数据，跳过预设填充")
+        db.close()
+        return
 
     subjects = db.query(Subject).all()
     subj_map = {s.name: s for s in subjects}
@@ -28,7 +30,8 @@ def seed_knowledge_points():
     if math_subj:
         for parent_name, children in math_kps.items():
             parent = SubjectKnowledgePoint(
-                subject_id=math_subj.id, name=parent_name, sort_order=0
+                subject_id=math_subj.id, name=parent_name, sort_order=0,
+                origin="preset",
             )
             db.add(parent)
             db.flush()
@@ -36,6 +39,7 @@ def seed_knowledge_points():
                 child = SubjectKnowledgePoint(
                     subject_id=math_subj.id, name=child_name,
                     parent_id=parent.id, sort_order=i + 1,
+                    origin="preset",
                 )
                 db.add(child)
 
@@ -50,7 +54,8 @@ def seed_knowledge_points():
     if chinese_subj:
         for parent_name, children in chinese_kps.items():
             parent = SubjectKnowledgePoint(
-                subject_id=chinese_subj.id, name=parent_name, sort_order=0
+                subject_id=chinese_subj.id, name=parent_name, sort_order=0,
+                origin="preset",
             )
             db.add(parent)
             db.flush()
@@ -58,6 +63,7 @@ def seed_knowledge_points():
                 child = SubjectKnowledgePoint(
                     subject_id=chinese_subj.id, name=child_name,
                     parent_id=parent.id, sort_order=i + 1,
+                    origin="preset",
                 )
                 db.add(child)
 
@@ -72,7 +78,8 @@ def seed_knowledge_points():
     if english_subj:
         for parent_name, children in english_kps.items():
             parent = SubjectKnowledgePoint(
-                subject_id=english_subj.id, name=parent_name, sort_order=0
+                subject_id=english_subj.id, name=parent_name, sort_order=0,
+                origin="preset",
             )
             db.add(parent)
             db.flush()
@@ -80,6 +87,7 @@ def seed_knowledge_points():
                 child = SubjectKnowledgePoint(
                     subject_id=english_subj.id, name=child_name,
                     parent_id=parent.id, sort_order=i + 1,
+                    origin="preset",
                 )
                 db.add(child)
 
@@ -94,7 +102,8 @@ def seed_knowledge_points():
     if physics_subj:
         for parent_name, children in physics_kps.items():
             parent = SubjectKnowledgePoint(
-                subject_id=physics_subj.id, name=parent_name, sort_order=0
+                subject_id=physics_subj.id, name=parent_name, sort_order=0,
+                origin="preset",
             )
             db.add(parent)
             db.flush()
@@ -102,6 +111,7 @@ def seed_knowledge_points():
                 child = SubjectKnowledgePoint(
                     subject_id=physics_subj.id, name=child_name,
                     parent_id=parent.id, sort_order=i + 1,
+                    origin="preset",
                 )
                 db.add(child)
 
@@ -116,7 +126,8 @@ def seed_knowledge_points():
     if chemistry_subj:
         for parent_name, children in chemistry_kps.items():
             parent = SubjectKnowledgePoint(
-                subject_id=chemistry_subj.id, name=parent_name, sort_order=0
+                subject_id=chemistry_subj.id, name=parent_name, sort_order=0,
+                origin="preset",
             )
             db.add(parent)
             db.flush()
@@ -124,6 +135,7 @@ def seed_knowledge_points():
                 child = SubjectKnowledgePoint(
                     subject_id=chemistry_subj.id, name=child_name,
                     parent_id=parent.id, sort_order=i + 1,
+                    origin="preset",
                 )
                 db.add(child)
 
@@ -137,7 +149,8 @@ def seed_knowledge_points():
     if biology_subj:
         for parent_name, children in biology_kps.items():
             parent = SubjectKnowledgePoint(
-                subject_id=biology_subj.id, name=parent_name, sort_order=0
+                subject_id=biology_subj.id, name=parent_name, sort_order=0,
+                origin="preset",
             )
             db.add(parent)
             db.flush()
@@ -145,6 +158,7 @@ def seed_knowledge_points():
                 child = SubjectKnowledgePoint(
                     subject_id=biology_subj.id, name=child_name,
                     parent_id=parent.id, sort_order=i + 1,
+                    origin="preset",
                 )
                 db.add(child)
 

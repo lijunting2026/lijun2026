@@ -1,5 +1,5 @@
 """知识点库、细目表及小题分模型"""
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, Text, UniqueConstraint
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, Text, UniqueConstraint, JSON
 from sqlalchemy.types import Uuid
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
@@ -18,9 +18,26 @@ class SubjectKnowledgePoint(BaseModel):
     subject = relationship("Subject", foreign_keys=[subject_id])
     parent = relationship("SubjectKnowledgePoint", remote_side="SubjectKnowledgePoint.id", backref="children")
 
+    source_id = Column(Uuid(as_uuid=True), ForeignKey("knowledge_sources.id"), nullable=True)  # 导入来源批次
+    origin = Column(String(20), default="custom")   # preset=官方预设库 | imported=导入 | custom=手录
+
     __table_args__ = (
         UniqueConstraint("subject_id", "name", name="uq_knowledge_point"),
     )
+
+
+class KnowledgeSource(BaseModel):
+    """知识点导入来源批次"""
+    __tablename__ = "knowledge_sources"
+
+    subject_id = Column(Uuid(as_uuid=True), ForeignKey("subjects.id"), nullable=False)
+    source_name = Column(String(200), nullable=False)   # 文件名/课标名
+    source_type = Column(String(20), default="textbook")  # textbook | curriculum | excel | manual
+    import_mode = Column(String(10), default="rules")     # template | rules | ai
+    status = Column(String(20), default="preview")        # preview | imported | failed
+    file_hash = Column(String(64), nullable=True)         # 去重
+    raw_text = Column(Text, nullable=True)
+    meta = Column(JSON, default=dict)
 
 
 class ExamQuestion(BaseModel):

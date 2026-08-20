@@ -8,4 +8,5 @@ from app.models.score import Score
 __all__ = ["BaseModel", "User", "Grade", "ClassInfo", "Student", "Subject", "Exam", "ExamSubject", "Score"]
 
 from app.models.chat import ChatMessage
-from app.models.exam_detail import SubjectKnowledgePoint, ExamQuestion, ScoreDetail
+from app.models.exam_detail import SubjectKnowledgePoint, KnowledgeSource, ExamQuestion, ScoreDetail
+from app.models.scoring import ScoringScheme, ScoreLine

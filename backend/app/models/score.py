@@ -16,6 +16,8 @@ class Score(BaseModel):
     score_value = Column(Float, nullable=False)
     status = Column(String(20), default="normal")
     class_id = Column(Uuid(as_uuid=True), ForeignKey("classes.id"), nullable=True)
+    converted_score = Column(Float, nullable=True)                # 赋分（官方导入或系统换算）
+    converted_source = Column(String(20), default="official")     # official=官方 | system=系统换算
     student = relationship("Student", back_populates="scores")
     exam_subject = relationship("ExamSubject", back_populates="scores")
     class_info = relationship("ClassInfo")

@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.database import init_db
 from app.utils.seed_knowledge import seed_knowledge_points
+from app.utils.seed_scoring import seed_scoring_schemes
 from app.api.v1 import auth, schools, students, subjects, exams, scores, analysis, report, exam_detail
 
 
@@ -63,6 +64,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     print("Database tables created")
     seed_knowledge_points()
     print("Knowledge points seeded")
+    seed_scoring_schemes()
+    print("Scoring schemes seeded")
     yield
 
 

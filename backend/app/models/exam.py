@@ -21,6 +21,9 @@ class ExamSubject(BaseModel):
     difficulty = Column(Float, nullable=True, comment="难度系数")
     discrimination = Column(Float, nullable=True, comment="区分度")
     reliability = Column(Float, nullable=True, comment="信度")
+    scoring_type = Column(String(20), default="raw")              # raw=原始分科目 | converted=赋分科目
+    scheme_id = Column(Uuid(as_uuid=True), ForeignKey("scoring_schemes.id"), nullable=True)  # 赋分方案
+    conversion_mode = Column(String(20), default="auto")          # auto=自动换算 | manual=手动赋分
     exam = relationship("Exam", back_populates="exam_subjects")
     subject = relationship("Subject", back_populates="exam_subjects")
     scores = relationship("Score", back_populates="exam_subject", cascade="all, delete-orphan")
