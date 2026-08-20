@@ -68,7 +68,8 @@ const breadcrumb = computed(() => {
       >
         <el-menu-item index="/dashboard">
           <el-icon><HomeFilled /></el-icon>
-          <template #title>首页</template>
+          <template #title>首页<div style="position:fixed;bottom:4px;right:4px;font-size:10px;color:#ccc;z-index:9999;background:rgba(0,0,0,0.5);padding:2px 6px;border-radius:4px">v2.0-KP</div>
+</template>
         </el-menu-item>
         <el-sub-menu index="/students-group">
           <template #title>
@@ -86,6 +87,7 @@ const breadcrumb = computed(() => {
           <el-menu-item index="/exam-group/subjects">科目管理</el-menu-item>
           <el-menu-item index="/exam-group/exams">考试管理</el-menu-item>
           <el-menu-item index="/exam-group/scores">成绩管理</el-menu-item>
+          <el-menu-item index="/exam-group/knowledge-points">知识点</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/analysis-group">
           <template #title>

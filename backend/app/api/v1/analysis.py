@@ -6,6 +6,7 @@ from app.schemas.analysis import ExamAnalysisResponse, DistributionResponse, Das
 from app.services.analytics.analysis_service import AnalysisService
 from app.services.analytics.dashboard_service import DashboardService
 from app.services.analytics.student_tracking import StudentTrackingService, ClassAnalysisService
+from app.services.analytics.knowledge_analysis_service import KnowledgeAnalysisService
 
 
 
@@ -290,20 +291,6 @@ def export_analysis(exam_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/chat")
-def ai_chat(data: dict, db: Session = Depends(get_db)):
-    from app.services.ai.chat_service import AIChatService
-    try:
-        message = data.get("message", "")
-        context_type = data.get("context_type", "general")
-        context_id = data.get("context_id")
-        service = AIChatService(db)
-        result = service.chat(message, context_type, context_id)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/chat")
 def chat_with_ai(
     data: dict,
     db: Session = Depends(get_db),
@@ -363,3 +350,26 @@ def chat_with_ai(
     result["session_id"] = session_id
     result["history"] = history_resp
     return result
+
+
+
+
+@router.get("/exam/{exam_id}/knowledge")
+def get_exam_knowledge_analysis(exam_id: str, db: Session = Depends(get_db)):
+    """获取考试的知识点分析"""
+    service = KnowledgeAnalysisService(db)
+    return {"knowledge_points": service.get_exam_knowledge_analysis(exam_id), "has_detail_data": service._has_detail_data(exam_id)}
+
+@router.get("/class/{class_id}/knowledge")
+def get_class_knowledge_analysis(class_id: str, exam_id: str = None, db: Session = Depends(get_db)):
+    """获取班级的知识点分析"""
+    service = KnowledgeAnalysisService(db)
+    return {"knowledge_points": service.get_class_knowledge_analysis(class_id, exam_id)}
+
+@router.get("/student/{student_id}/knowledge")
+def get_student_knowledge_analysis(student_id: str, db: Session = Depends(get_db)):
+    """获取学生的知识点分析"""
+    service = KnowledgeAnalysisService(db)
+    result = service.get_student_knowledge_analysis(student_id)
+    return result
+

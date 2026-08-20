@@ -7,17 +7,15 @@ interface TabItem {
   route: string
 }
 
-const props = defineProps<{
-  tabs: TabItem[]
-}>()
-
 const route = useRoute()
 const router = useRouter()
 
+const tabs = computed(() => (route.meta?.tabs as TabItem[]) || [])
+
 const activeTab = computed(() => {
-  const sorted = [...props.tabs].sort((a, b) => b.route.length - a.route.length)
+  const sorted = [...tabs.value].sort((a, b) => b.route.length - a.route.length)
   const matched = sorted.find((t) => route.path.startsWith(t.route))
-  return matched ? matched.route : props.tabs[0]?.route || ""
+  return matched ? matched.route : tabs.value[0]?.route || ""
 })
 
 function handleTabClick(tab: { props: { name: string } }) {
@@ -27,6 +25,11 @@ function handleTabClick(tab: { props: { name: string } }) {
 
 <template>
   <div class="tab-group-wrapper">
+    <div style="padding:4px 12px;background:#fff3cd;border:1px solid #ffeeba;border-radius:4px;margin-bottom:4px;font-size:12px;color:#856404">
+      标签数量: <strong>{{ tabs.length }}</strong>
+      <span v-if="tabs.length"> | 标签: <span v-for="(t,i) in tabs" :key="i" style="margin-right:6px">{{ t.label }}</span></span>
+      <span v-else style="color:red"> ❌ 未找到标签数据!</span>
+    </div>
     <div class="tab-card">
       <el-tabs
         :model-value="activeTab"

@@ -1,5 +1,5 @@
-﻿<script setup lang="ts">
-import { ref, watch } from "vue"
+<script setup lang="ts">
+import { ref, computed } from "vue"
 import { useRouter } from "vue-router"
 import { useAuthStore } from "@/stores"
 import { ElMessage, ElDialog, ElForm, ElFormItem, ElInput, ElButton } from "element-plus"
@@ -15,6 +15,22 @@ const loading = ref(false)
 const showChangePwd = ref(false)
 const pwdForm = ref({ old_password: "", new_password: "", confirm_password: "" })
 const pwdLoading = ref(false)
+
+// Password strength calculation
+function calcStrength(pwd: string): { strength: string; color: string; text: string } {
+  if (!pwd) return { strength: "", color: "", text: "" }
+  if (pwd.length < 8) return { strength: "weak", color: "#F56C6C", text: "太短" }
+  let score = 0
+  if (/[A-Z]/.test(pwd)) score++
+  if (/[a-z]/.test(pwd)) score++
+  if (/\d/.test(pwd)) score++
+  if (/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/;'`~]/.test(pwd)) score++
+  if (score <= 1) return { strength: "weak", color: "#F56C6C", text: "弱" }
+  if (score <= 2) return { strength: "medium", color: "#E6A23C", text: "中" }
+  return { strength: "strong", color: "#67C23A", text: "强" }
+}
+
+const pwdStrength = computed(() => calcStrength(pwdForm.value.new_password))
 
 async function handleLogin() {
   loading.value = true
@@ -38,8 +54,9 @@ async function handleChangePassword() {
     ElMessage.error("两次输入的新密码不一致")
     return
   }
-  if (pwdForm.value.new_password.length < 8) {
-    ElMessage.error("新密码至少8位")
+  const s = calcStrength(pwdForm.value.new_password)
+  if (!s.strength || s.strength === "weak") {
+    ElMessage.error("密码强度太弱，需包含大写字母、小写字母、数字和特殊字符")
     return
   }
   pwdLoading.value = true
@@ -92,6 +109,12 @@ async function handleChangePassword() {
         </el-form-item>
         <el-form-item label="新密码">
           <el-input v-model="pwdForm.new_password" type="password" show-password />
+          <div v-if="pwdStrength.text" style="margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+            <div style="flex: 1; height: 4px; background: #eee; border-radius: 2px; overflow: hidden;">
+              <div :style="`width: ${pwdStrength.strength === 'weak' ? '33%' : pwdStrength.strength === 'medium' ? '66%' : '100%'}; height: 100%; background: ${pwdStrength.color}; border-radius: 2px; transition: all 0.3s;`"></div>
+            </div>
+            <span :style="{ color: pwdStrength.color, fontSize: '12px', fontWeight: 600 }">{{ pwdStrength.text }}</span>
+          </div>
         </el-form-item>
         <el-form-item label="确认密码">
           <el-input v-model="pwdForm.confirm_password" type="password" show-password />

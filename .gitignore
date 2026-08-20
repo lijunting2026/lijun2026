@@ -1,4 +1,4 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -27,3 +27,12 @@ logs/
 # Environment
 .env
 .env.local
+# Data files
+*.db
+*.sqlite3
+
+# Docker
+docker/postgres/init.sql
+
+# Docs generated
+docs/_build/

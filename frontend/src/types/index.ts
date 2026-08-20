@@ -293,3 +293,28 @@ export interface ScoreSummaryResponse {
   overall_avg: number
   overall_pass_rate: number
 }
+
+// Knowledge Point types
+export interface KnowledgePoint {
+  id: string
+  subject_id: string
+  name: string
+  parent_id: string | null
+  sort_order: number
+  description: string
+  children: KnowledgePoint[]
+}
+
+export interface ExamQuestion {
+  id: string
+  exam_subject_id: string
+  question_no: number
+  question_type: string
+  full_score: number
+  knowledge_point_id: string | null
+  knowledge_point_name: string | null
+  difficulty: number | null
+  cognitive_level: string
+  estimated_pass_rate: number | null
+  content: string
+}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from "vue"
+import { ref, onMounted, nextTick, computed } from "vue"
 import { schoolApi, analysisApi } from "@/api"
 import type { ClassInfo } from "@/types"
 import { ElMessage } from "element-plus"
@@ -11,13 +11,42 @@ const selectedClassId = ref("")
 const classData = ref<any>(null)
 const loading = ref(false)
 const aiChatVisible = ref(false)
+const kpData = ref<any>(null)
+const kpLoading = ref(false)
 
 const chartExamTrend = ref<Record<string, any>>({})
 const chartSubjectBar = ref<Record<string, any>>({})
 
+const chartKpBar = computed(() => {
+  if (!kpData.value?.knowledge_points?.length) return {}
+  const items = kpData.value.knowledge_points.slice(0, 15)
+  return {
+    tooltip: { trigger: "axis" },
+    grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+    xAxis: { type: "category", data: items.map((k: any) => k.knowledge_point_name), axisLabel: { rotate: 25, fontSize: 10 } },
+    yAxis: { type: "value", name: "掌握率(%)", max: 100 },
+    series: [{
+      type: "bar",
+      data: items.map((k: any) => k.avg_mastery_rate),
+      itemStyle: { color: "#67C23A", borderRadius: [4, 4, 0, 0] },
+      label: { show: true, position: "top", fontSize: 10, formatter: (p: any) => p.value + "%" },
+    }],
+  }
+})
+
 async function loadClasses() {
   const res = await schoolApi.listClasses()
   classes.value = res.data as any
+}
+
+async function loadClassKp() {
+  if (!selectedClassId.value) return
+  kpLoading.value = true
+  try {
+    const res = await analysisApi.getClassKnowledgeAnalysis(selectedClassId.value)
+    kpData.value = res.data
+  } catch { /* ignore */ }
+  finally { kpLoading.value = false }
 }
 
 async function exportClassData() {
@@ -53,6 +82,7 @@ async function analyzeClass() {
   try {
     const res = await analysisApi.getClassAnalysis(selectedClassId.value)
     classData.value = res.data
+    loadClassKp()
     buildCharts()
   } catch {
     ElMessage.error("获取班级分析数据失败")
@@ -217,7 +247,18 @@ onMounted(loadClasses)
     <el-icon><ChatDotSquare /></el-icon>
   </el-button>
 
-  <AIChatDialog v-model:visible="aiChatVisible" context-type="exam" :context-id="selectedClassId" :context-label="classData?.class_name" />
+  <!-- Knowledge Points -->
+      <el-card shadow="hover" style="margin-top: 16px" v-if="chartKpBar.xAxis?.data?.length">
+        <template #header>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="font-weight: 600">知识点掌握分析</span>
+            <el-tag size="small" type="success">基于考题细目表</el-tag>
+          </div>
+        </template>
+        <ChartBar :option="chartKpBar" />
+      </el-card>
+
+      <AIChatDialog v-model:visible="aiChatVisible" context-type="exam" :context-id="selectedClassId" :context-label="classData?.class_name" />
 </template>
 
 <style scoped>

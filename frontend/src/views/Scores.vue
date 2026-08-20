@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue"
 import { scoreApi, examApi, schoolApi } from "@/api"
 import type { ScoreRecord, Exam, ClassInfo, Grade } from "@/types"

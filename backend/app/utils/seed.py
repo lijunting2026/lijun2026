@@ -1,6 +1,5 @@
-﻿"""
-\u6570\u636e\u5e93\u521d\u59cb\u5316\u548c\u6d4b\u8bd5\u6570\u636e\u586b\u5145\u811a\u672c
-\u7528\u6cd5: python -m app.utils.seed
+﻿"""数据库初始化和测试数据填充脚本
+用法: python -m app.utils.seed
 """
 from app.core.database import SessionLocal, engine, Base
 from app.core.security import get_password_hash
@@ -10,7 +9,6 @@ from app.models.student import Student
 from app.models.subject import Subject
 from app.models.exam import Exam, ExamSubject
 from app.models.score import Score
-import uuid
 from datetime import date, datetime, timezone
 import random
 
@@ -29,16 +27,17 @@ def seed():
     admin = User(
         username="admin",
         password_hash=get_password_hash("Admin@ChangeMe2026"),
-        display_name="\u7ba1\u7406\u5458",
+        display_name="管理员",
         role="admin",
-        is_active=True,\n        needs_password_change=True,
+        is_active=True,
+        needs_password_change=True,
     )
     db.add(admin)
 
     # Grades
-    g1 = Grade(name="\u9ad8\u4e00", sort_order=1)
-    g2 = Grade(name="\u9ad8\u4e8c", sort_order=2)
-    g3 = Grade(name="\u9ad8\u4e09", sort_order=3)
+    g1 = Grade(name="高一", sort_order=1)
+    g2 = Grade(name="高二", sort_order=2)
+    g3 = Grade(name="高三", sort_order=3)
     db.add_all([g1, g2, g3])
     db.flush()
 
@@ -46,19 +45,19 @@ def seed():
     classes = []
     for g in [g1, g2, g3]:
         for i in range(1, 5):
-            c = ClassInfo(name=f"{g.name}({i})\u73ed", grade_id=g.id)
+            c = ClassInfo(name=f"{g.name}({i})班", grade_id=g.id)
             db.add(c)
             classes.append(c)
     db.flush()
 
     # Subjects
     subjects_data = [
-        ("\u8bed\u6587", 150, 1),
-        ("\u6570\u5b66", 150, 2),
-        ("\u82f1\u8bed", 150, 3),
-        ("\u7269\u7406", 100, 4),
-        ("\u5316\u5b66", 100, 5),
-        ("\u751f\u7269", 100, 6),
+        ("语文", 150, 1),
+        ("数学", 150, 2),
+        ("英语", 150, 3),
+        ("物理", 100, 4),
+        ("化学", 100, 5),
+        ("生物", 100, 6),
     ]
     subjects = []
     for name, full_score, order in subjects_data:
@@ -71,10 +70,10 @@ def seed():
     students = []
     for cls in classes[:4]:  # g1 classes
         for i in range(1, 31):
-            gender = "\u7537" if i % 2 == 1 else "\u5973"
+            gender = "男" if i % 2 == 1 else "女"
             st = Student(
                 student_no=f"2026{str(classes.index(cls)+1).zfill(2)}{str(i).zfill(3)}",
-                name=f"\u5b66\u751f{cls.name}_{i}",
+                name=f"学生{cls.name}_{i}",
                 gender=gender,
                 class_id=cls.id,
             )
@@ -84,9 +83,9 @@ def seed():
 
     # Exam
     exam = Exam(
-        name="2026\u5e74\u7b2c\u4e00\u6b21\u6708\u8003",
+        name="2026年第一次月考",
         exam_date=date(2026, 3, 15),
-        exam_type="\u6708\u8003",
+        exam_type="月考",
         grade_id=g1.id,
     )
     db.add(exam)
@@ -108,7 +107,6 @@ def seed():
     # Scores
     for student in students:
         for es in exam_subjects:
-            # Simulate realistic scores
             mean = es.full_score * 0.65
             std = es.full_score * 0.12
             score_val = max(0, min(es.full_score, random.gauss(mean, std)))

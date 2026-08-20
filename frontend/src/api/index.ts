@@ -188,6 +188,19 @@ export const reportApi = {
   studentPdf(studentId: string) {
     return `/api/v1/report/pdf/student/${studentId}`
   },
+  // Error notebook
+  errorNotebook(studentId: string, examId?: string) {
+    return api.get<any>(`/report/error-notebook/${studentId}`, { params: { exam_id: examId } })
+  },
+  errorNotebookUrl(studentId: string, examId?: string) {
+    let url = `/api/v1/report/error-notebook/${studentId}/export`
+    if (examId) url += `?exam_id=${examId}`
+    return url
+  },
+  // Practice generation
+  generatePractice(studentId: string, data: { question_count?: number; include_types?: string[] }) {
+    return api.post<any>(`/report/practice/${studentId}`, data)
+  },
 }
 
 export const analysisApi = {
@@ -209,6 +222,16 @@ export const analysisApi = {
   getClassAnalysis(classId: string) {
     return api.get<ClassOverview>("/analysis/class/" + classId)
   },
+  // Knowledge point analysis
+  getExamKnowledgeAnalysis(examId: string) {
+    return api.get<any>("/analysis/exam/" + examId + "/knowledge")
+  },
+  getClassKnowledgeAnalysis(classId: string, examId?: string) {
+    return api.get<any>("/analysis/class/" + classId + "/knowledge", { params: { exam_id: examId } })
+  },
+  getStudentKnowledgeAnalysis(studentId: string) {
+    return api.get<any>("/analysis/student/" + studentId + "/knowledge")
+  },
 }
 
 // ========== User Management ===========
@@ -225,3 +248,45 @@ export const userApi = {
 }
 
 export default api
+
+// ========== Knowledge Points ===========
+export const knowledgeApi = {
+  getTree(subjectId: string) {
+    return api.get<any[]>(`/knowledge-points/tree/${subjectId}`)
+  },
+  list(subjectId: string) {
+    return api.get<any[]>(`/knowledge-points/${subjectId}`)
+  },
+  create(data: { subject_id: string; name: string; parent_id?: string; sort_order?: number; description?: string }) {
+    return api.post("/knowledge-points/", data)
+  },
+  update(id: string, data: { name?: string; parent_id?: string; sort_order?: number; description?: string }) {
+    return api.put(`/knowledge-points/${id}`, data)
+  },
+  delete(id: string) {
+    return api.delete(`/knowledge-points/${id}`)
+  },
+  getExamQuestions(examSubjectId: string) {
+    return api.get<any[]>(`/knowledge-points/exam-questions/${examSubjectId}`)
+  },
+  importBlueprint(data: {
+    exam_subject_id: string
+    difficulty?: number
+    discrimination?: number
+    reliability?: number
+    questions: Array<{
+      question_no: number
+      question_type: string
+      full_score: number
+      knowledge_point_id?: string
+      difficulty?: number
+      cognitive_level: string
+      estimated_pass_rate?: number
+      content: string
+    }>
+  }) {
+    return api.post("/knowledge-points/import-blueprint", data)
+  },
+}
+
+

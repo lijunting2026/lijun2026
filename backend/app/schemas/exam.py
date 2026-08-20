@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+﻿from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date
 
@@ -6,11 +6,14 @@ class ExamSubjectCreate(BaseModel):
     subject_id: str
     full_score: float
     weight: float = 1.0
+    difficulty: Optional[float] = None
+    discrimination: Optional[float] = None
+    reliability: Optional[float] = None
 
 class ExamCreate(BaseModel):
     name: str
     exam_date: date
-    exam_type: str = "\u6708\u8003"
+    exam_type: str = "月考"
     grade_id: str
     subjects: List[ExamSubjectCreate]
 
@@ -20,6 +23,9 @@ class ExamSubjectResponse(BaseModel):
     subject_name: Optional[str] = None
     full_score: float
     weight: float
+    difficulty: Optional[float] = None
+    discrimination: Optional[float] = None
+    reliability: Optional[float] = None
     class Config:
         from_attributes = True
 

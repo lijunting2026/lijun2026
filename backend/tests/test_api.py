@@ -283,6 +283,13 @@ class TestExamUpdate:
 
     def test_update_nonexistent_exam(self, client):
         resp = client.put("/api/v1/exams/00000000-0000-0000-0000-000000000000", json={
+            "name": "update test",
+            "exam_date": "2026-07-15",
+            "exam_type": "monthly",
+            "grade_id": "00000000-0000-0000-0000-000000000001",
+            "subjects": [],
+        })
+        assert resp.status_code == 404
 
 class TestScores:
     """Score CRUD + summary tests"""

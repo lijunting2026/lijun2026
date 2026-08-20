@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, onMounted } from "vue"
 import { authApi, userApi } from "@/api"
 import type { UserInfo } from "@/types"
@@ -139,3 +139,5 @@ onMounted(loadUsers)
     </el-dialog>
   </div>
 </template>
+
+

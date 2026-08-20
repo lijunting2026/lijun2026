@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Column, String, Text, ForeignKey, Boolean
+from sqlalchemy import Column, String, Text, ForeignKey, Boolean
 from sqlalchemy.types import Uuid
 from app.models.base import BaseModel
 

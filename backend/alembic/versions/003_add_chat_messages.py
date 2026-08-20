@@ -1,4 +1,4 @@
-﻿"""add chat_messages table"""
+"""add chat_messages table"""
 from typing import Sequence, Union
 
 from alembic import op

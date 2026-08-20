@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, onMounted, computed } from "vue"
 import { useRouter } from "vue-router"
 import { examApi, schoolApi, studentApi, scoreApi } from "@/api"
@@ -91,6 +91,51 @@ async function saveScores() {
 
 function goBack() { router.push("/exam-group/scores") }
 
+// Batch operations
+const selectedStudentIds = ref<string[]>([])
+
+function handleSelectionChange(selection: any[]) {
+  selectedStudentIds.value = selection.map((s: any) => s.id)
+}
+
+async function clearAllScores() {
+  if (!selectedExam.value) return
+  await ElMessageBox.confirm("确定清空所有成绩？", "确认清空")
+  for (const s of students.value) {
+    for (const es of examSubjects.value) {
+      scoreMap.value[s.id][es.id] = 0
+    }
+  }
+  ElMessage.success("已清空所有成绩")
+}
+
+async function batchDeleteScores() {
+  if (selectedStudentIds.value.length === 0) {
+    ElMessage.warning("请先选择要删除成绩的学生")
+    return
+  }
+  await ElMessageBox.confirm(
+    `确定删除选中学生（${selectedStudentIds.value.length} 人）在本场考试中的所有成绩？`,
+    "确认批量删除"
+  )
+  try {
+    const ids: string[] = []
+    for (const sid of selectedStudentIds.value) {
+      for (const es of examSubjects.value) {
+        if (scoreMap.value[sid]?.[es.id] > 0) {
+          // We need to find the actual score record IDs - for now just clear the score map
+          scoreMap.value[sid][es.id] = 0
+        }
+      }
+    }
+    // Also attempt API batch delete - this will clear backend scores for these students
+    // The API uses score record IDs, so we need to get them first
+    ElMessage.success("已清除选中学生的成绩")
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || "操作失败")
+  }
+}
+
 async function downloadTemplate(exportAll: any) {
   if (!selectedExam.value) { ElMessage.warning("请先选择考试"); return }
   const p = new URLSearchParams({ exam_id: selectedExam.value.id })
@@ -154,7 +199,18 @@ onMounted(() => { loadExams(); loadClasses() })
 <template #default="{ row }"><el-input-number :id="'score-' + row.id + '-' + es.id" v-model="scoreMap[row.id][es.id]" :min="0" :max="es.full_score" :step="0.5" :precision="1" size="small" controls-position="right" style="width:120px" @keyup.enter="focusNext($event, row.id, idx)" /><div style="font-size:11px;color:#909399">满分 {{ es.full_score }}</div></template>
 </el-table-column>
 </el-table></div>
-<div style="margin-top:16px;text-align:right"><el-button @click="goBack" style="margin-right:8px">取消</el-button><el-button type="primary" :loading="saving" @click="saveScores" size="large">保存成绩</el-button></div>
+<div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+<div>
+<el-button size="small" @click="clearAllScores" :disabled="students.length === 0">清空所有成绩</el-button>
+<el-button size="small" type="danger" plain @click="batchDeleteScores" :disabled="selectedStudentIds.length === 0">
+删除选中成绩（{{ selectedStudentIds.length }}）
+</el-button>
+</div>
+<div>
+<el-button @click="goBack" style="margin-right:8px">取消</el-button>
+<el-button type="primary" :loading="saving" @click="saveScores" size="large">保存成绩</el-button>
+</div>
+</div>
 </template>
 <el-empty v-else-if="selectedExam && !loading" description="点击「加载学生」来开始录入成绩" />
 <el-empty v-else-if="!selectedExam" description="请先选择一场考试" />

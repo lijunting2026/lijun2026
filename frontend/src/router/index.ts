@@ -1,3 +1,4 @@
+// VERSION: exam-analysis-system v2.0-KP
 ﻿import { createRouter, createWebHashHistory } from "vue-router"
 import { useAuthStore } from "@/stores"
 import MainLayout from "@/layout/MainLayout.vue"
@@ -25,13 +26,10 @@ const routes = [
         path: "students-group",
         component: () => import("@/components/TabGroup.vue"),
         redirect: "/students-group/schools",
-        meta: { title: "学生与班级管理" },
-        props: {
-          tabs: [
+        meta: { title: "学生与班级管理", tabs: [
             { label: "年级班级", route: "/students-group/schools" },
             { label: "学生管理", route: "/students-group/students" },
-          ],
-        },
+          ], },
         children: [
           {
             path: "schools",
@@ -49,14 +47,12 @@ const routes = [
         path: "exam-group",
         component: () => import("@/components/TabGroup.vue"),
         redirect: "/exam-group/subjects",
-        meta: { title: "考试与科目管理" },
-        props: {
-          tabs: [
+        meta: { title: "考试与科目管理", tabs: [
             { label: "科目管理", route: "/exam-group/subjects" },
             { label: "考试管理", route: "/exam-group/exams" },
             { label: "成绩管理", route: "/exam-group/scores" },
-          ],
-        },
+            { label: "知识点", route: "/exam-group/knowledge-points" },
+          ], },
         children: [
           {
             path: "subjects",
@@ -67,6 +63,11 @@ const routes = [
             path: "exams",
             component: () => import("@/views/Exams.vue"),
             meta: { title: "考试管理" },
+          },
+          {
+            path: "knowledge-points",
+            component: () => import("@/views/KnowledgePoints.vue"),
+            meta: { title: "知识点" },
           },
           {
             path: "scores",
@@ -81,14 +82,11 @@ const routes = [
         path: "analysis-group",
         component: () => import("@/components/TabGroup.vue"),
         redirect: "/analysis-group/analysis",
-        meta: { title: "数据分析与跟踪" },
-        props: {
-          tabs: [
+        meta: { title: "数据分析与跟踪", tabs: [
             { label: "年级分析", route: "/analysis-group/analysis" },
             { label: "班级分析", route: "/analysis-group/class-analysis" },
             { label: "个体分析", route: "/analysis-group/student-tracking" },
-          ],
-        },
+          ], },
         children: [
           {
             path: "analysis",

@@ -1,4 +1,4 @@
-﻿import os
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 
@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "gpt-3.5-turbo"
     LLM_ENABLED: bool = False
 
+    # Sentry / Monitoring
+    SENTRY_DSN: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()
+

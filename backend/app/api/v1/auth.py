@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from collections import defaultdict
 import time
 
@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.deps import get_current_user
+from app.core.password_policy import validate_password_strength
 import uuid
 from app.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate, PasswordChangeRequest
@@ -64,6 +65,9 @@ def register(
     existing = db.query(User).filter(User.username == data.username).first()
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户名已存在")
+    pwd_check = validate_password_strength(data.password)
+    if not pwd_check["valid"]:
+        raise HTTPException(status_code=400, detail=pwd_check["message"])
     user = User(
         username=data.username,
         password_hash=get_password_hash(data.password),

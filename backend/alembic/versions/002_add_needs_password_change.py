@@ -1,4 +1,4 @@
-﻿"""add needs_password_change column to users"""
+"""add needs_password_change column to users"""
 
 from typing import Sequence, Union
 

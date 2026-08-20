@@ -18,6 +18,8 @@ const distributions = ref<Record<string, ScoreDistribution[]>>({})
 const loading = ref(false)
 const aiChatVisible = ref(false)
 const showCharts = ref(false)
+const kpData = ref<any[]>([])
+const kpLoading = ref(false)
 
 const chartAvgBar = computed(() => {
   if (!analysis.value) return {}
@@ -89,6 +91,29 @@ const chartDistribution = computed(() => {
   }
 })
 
+const chartKpRadar = computed(() => {
+  if (!kpData.value.length) return {}
+  const items = kpData.value.slice(0, 12)
+  return {
+    tooltip: { trigger: "item" },
+    radar: {
+      indicator: items.map((k) => ({ name: k.knowledge_point_name, max: 100 })),
+      radius: "55%",
+      center: ["50%", "55%"],
+    },
+    series: [{
+      type: "radar",
+      data: [{
+        value: items.map((k) => k.avg_mastery_rate),
+        name: "掌握率",
+        areaStyle: { color: "rgba(103,194,58,0.2)" },
+        lineStyle: { color: "#67C23A", width: 2 },
+        itemStyle: { color: "#67C23A" },
+      }],
+    }],
+  }
+})
+
 const chartClassCompare = computed(() => {
   if (!analysis.value) return {}
   const classStats = analysis.value.class_stats || []
@@ -151,6 +176,11 @@ async function analyze() {
       }
     })
     await Promise.all(distPromises)
+    // Load knowledge point analysis
+    try {
+      const kpRes = await analysisApi.getExamKnowledgeAnalysis(selectedExamId.value)
+      kpData.value = kpRes.data?.knowledge_points || []
+    } catch { /* ignore */ }
     showCharts.value = true
   } catch {
     ElMessage.error("获取分析数据失败")
@@ -246,6 +276,16 @@ function onGradeChange() {
             <el-card shadow="hover" class="chart-card">
               <template #header><span style="font-weight: 600">分数段分布</span></template>
               <ChartBar :option="chartDistribution" />
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <!-- Knowledge Points radar chart -->
+        <el-row :gutter="16" style="margin-top: 16px" v-if="kpData.length">
+          <el-col :span="24">
+            <el-card shadow="hover" class="chart-card">
+              <template #header><span style="font-weight: 600">知识点掌握雷达图</span></template>
+              <ChartRadar :option="chartKpRadar" />
             </el-card>
           </el-col>
         </el-row>

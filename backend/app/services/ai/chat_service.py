@@ -1,4 +1,4 @@
-﻿import uuid, json, math, os as os_module
+import uuid, json, math, os as os_module
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session

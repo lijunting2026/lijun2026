@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Date, Float, ForeignKey
+﻿from sqlalchemy import Column, String, Date, Float, ForeignKey
 from sqlalchemy.types import Uuid
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
@@ -18,6 +18,12 @@ class ExamSubject(BaseModel):
     subject_id = Column(Uuid(as_uuid=True), ForeignKey("subjects.id"), nullable=False)
     full_score = Column(Float, nullable=False)
     weight = Column(Float, default=1.0)
+    difficulty = Column(Float, nullable=True, comment="难度系数")
+    discrimination = Column(Float, nullable=True, comment="区分度")
+    reliability = Column(Float, nullable=True, comment="信度")
     exam = relationship("Exam", back_populates="exam_subjects")
     subject = relationship("Subject", back_populates="exam_subjects")
     scores = relationship("Score", back_populates="exam_subject", cascade="all, delete-orphan")
+    exam_questions = relationship("ExamQuestion", back_populates="exam_subject", cascade="all, delete-orphan")
+
+

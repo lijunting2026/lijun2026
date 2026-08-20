@@ -19,3 +19,4 @@ class Score(BaseModel):
     student = relationship("Student", back_populates="scores")
     exam_subject = relationship("ExamSubject", back_populates="scores")
     class_info = relationship("ClassInfo")
+    score_details = relationship("ScoreDetail", back_populates="score", cascade="all, delete-orphan")

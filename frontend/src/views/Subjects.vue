@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, onMounted } from "vue"
 import { subjectApi } from "@/api"
 import type { Subject } from "@/types"
@@ -109,4 +109,5 @@ onMounted(loadSubjects)
     </el-dialog>
   </div>
 </template>
+
 

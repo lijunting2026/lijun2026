@@ -18,7 +18,7 @@ const form = ref({
   exam_date: "",
   exam_type: "月考",
   grade_id: "",
-  subjects: [] as Array<{ subject_id: string; full_score: number; weight: number }>,
+  subjects: [] as Array<{ subject_id: string; full_score: number; weight: number; id?: string; subject_name?: string }>,
 })
 
 async function loadData() {
@@ -49,6 +49,7 @@ function openEdit(exam: any) {
       subject_id: s.subject_id,
       full_score: s.full_score,
       weight: s.weight,
+      subject_name: s.subject_name,
     })),
   }
   editingId.value = exam.id
@@ -72,6 +73,17 @@ function addSubject() {
 
 function removeSubject(index: number) {
   form.value.subjects.splice(index, 1)
+}
+
+// Blueprint dialog
+const blueprintDialog = ref(false)
+const blueprintSubjectId = ref("")
+const blueprintSubjectName = ref("")
+
+function openBlueprintDialog(subjectId: string, subjectName: string) {
+  blueprintSubjectId.value = subjectId
+  blueprintSubjectName.value = subjectName
+  blueprintDialog.value = true
 }
 
 async function save() {
@@ -182,6 +194,7 @@ onMounted(loadData)
               <el-input-number v-model="s.full_score" placeholder="满分" :min="1" :max="300" style="width: 120px" />
               <el-input-number v-model="s.weight" placeholder="权重" :min="0.1" :step="0.1" :precision="1" style="width: 120px" />
               <el-button @click="removeSubject(idx)" :icon="Delete" circle />
+              <el-button size="small" @click="openBlueprintDialog(s.id || '', s.subject_name || '')" :disabled="!s.subject_id">细目表</el-button>
             </div>
             <el-button size="small" @click="addSubject">+ 添加科目</el-button>
           </div>

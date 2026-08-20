@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick } from "vue"
-import { studentApi, schoolApi, analysisApi } from "@/api"
+import { studentApi, schoolApi, analysisApi, reportApi } from "@/api"
 import type { Student, ClassInfo } from "@/types"
 import { ElMessage } from "element-plus"
 import { downloadBlob } from "@/utils/download"
@@ -17,10 +17,41 @@ const errorMsg = ref("")
 const studentData = ref<any>(null)
 const adviceData = ref<any>(null)
 
+// Knowledge point analysis
+const kpData = ref<any>(null)
+const kpLoading = ref(false)
+const hasKpData = ref(false)
+
+// Error notebook & practice
+const notebookVisible = ref(false)
+const notebookData = ref<any>(null)
+const nbLoading = ref(false)
+const practiceVisible = ref(false)
+const practiceData = ref<any>(null)
+const ptLoading = ref(false)
+const ptQuestionCount = ref(10)
+
 const chartTrend = ref<any>(null)
 const chartRadar = ref<any>(null)
 const trendOptions = ref<Record<string, any>>({})
 const radarOptions = ref<Record<string, any>>({})
+
+const chartKpMastery = computed(() => {
+  if (!kpData.value?.knowledge_points?.length) return {}
+  const items = kpData.value.knowledge_points
+  return {
+    tooltip: { trigger: "axis" },
+    grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+    xAxis: { type: "category", data: items.map((k: any) => k.knowledge_point_name), axisLabel: { rotate: 25, fontSize: 10 } },
+    yAxis: { type: "value", name: "掌握率(%)", max: 100 },
+    series: [{
+      type: "bar",
+      data: items.map((k: any) => k.mastery_rate),
+      itemStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#409EFF" }, { offset: 1, color: "#79BBFF" }] }, borderRadius: [4, 4, 0, 0] },
+      label: { show: true, position: "top", fontSize: 10, formatter: (p: any) => p.value + "%" },
+    }],
+  }
+})
 
 async function loadClasses() {
   try {
@@ -54,6 +85,57 @@ async function search() {
   await loadStudents()
 }
 
+async function loadStudentKp() {
+  if (!selectedStudentId.value) return
+  kpLoading.value = true
+  try {
+    const res = await analysisApi.getStudentKnowledgeAnalysis(selectedStudentId.value)
+    hasKpData.value = res.data?.has_detail_data || false
+    kpData.value = res.data
+  } catch {
+    hasKpData.value = false
+  } finally {
+    kpLoading.value = false
+  }
+}
+
+async function loadErrorNotebook() {
+  if (!selectedStudentId.value) return
+  nbLoading.value = true
+  try {
+    const res = await reportApi.errorNotebook(selectedStudentId.value)
+    notebookData.value = res.data
+    notebookVisible.value = true
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || "加载错题集失败")
+  } finally {
+    nbLoading.value = false
+  }
+}
+
+async function generateStudentPractice() {
+  if (!selectedStudentId.value) return
+  ptLoading.value = true
+  try {
+    const res = await reportApi.generatePractice(selectedStudentId.value, {
+      question_count: ptQuestionCount.value,
+      include_types: ["选择题", "填空题", "解答题"],
+    })
+    practiceData.value = res.data
+    practiceVisible.value = true
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || "生成练习失败")
+  } finally {
+    ptLoading.value = false
+  }
+}
+
+function downloadNotebook() {
+  if (!selectedStudentId.value) return
+  const url = reportApi.errorNotebookUrl(selectedStudentId.value)
+  window.open(url, "_blank")
+}
+
 async function selectStudent() {
   if (!selectedStudentId.value) return
   loading.value = true
@@ -64,6 +146,7 @@ async function selectStudent() {
     ])
     studentData.value = sRes.data
     adviceData.value = aRes.data
+    loadStudentKp()
     buildCharts()
   } catch (err: any) {
     console.error("StudentTracking error:", err)
@@ -266,6 +349,20 @@ onMounted(() => {
 
         
 
+        <!-- Knowledge Point Mastery -->
+        <el-card shadow="hover" style="margin-top: 16px" v-if="chartKpMastery.xAxis?.data?.length">
+          <template #header>
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <span style="font-weight: 600">知识点掌握分析</span>
+              <div style="display: flex; gap: 8px">
+                <el-button size="small" type="primary" plain @click="loadErrorNotebook" :loading="nbLoading">错题集</el-button>
+                <el-button size="small" type="success" plain @click="generateStudentPractice" :loading="ptLoading">生成练习</el-button>
+              </div>
+            </div>
+          </template>
+          <ChartBar :option="chartKpMastery" />
+        </el-card>
+
         <!-- AI Advice -->
         <el-card shadow="hover" style="margin-top: 16px" v-if="adviceData">
           <template #header>
@@ -331,6 +428,50 @@ onMounted(() => {
   >
     <el-icon><ChatDotSquare /></el-icon>
   </el-button>
+
+  <!-- Error Notebook Dialog -->
+  <el-dialog v-model="notebookVisible" title="错题集" width="800px" top="5vh">
+    <template v-if="notebookData">
+      <div v-if="notebookData.sections?.length">
+        <div v-for="(section, idx) in notebookData.sections" :key="idx" style="margin-bottom: 20px">
+          <h4 style="margin-bottom: 8px; color: #409EFF">{{ section.subject_name }}</h4>
+          <div v-for="(item, i) in section.items" :key="i" style="padding: 12px; margin-bottom: 8px; background: #f5f7fa; border-radius: 8px">
+            <div style="margin-bottom: 4px"><strong>题目 {{ item.question_no }}</strong> <el-tag size="small" type="warning" v-if="item.knowledge_point">{{ item.knowledge_point }}</el-tag></div>
+            <p style="margin: 4px 0; white-space: pre-wrap">{{ item.content }}</p>
+            <div v-if="item.your_score != null" style="color: #909399; font-size: 12px">得分: {{ item.your_score }} / {{ item.full_score }}</div>
+            <div v-if="item.analysis" style="margin-top: 4px; padding: 8px; background: #e6f7ff; border-radius: 4px; color: #606266"><strong>解析:</strong> {{ item.analysis }}</div>
+          </div>
+        </div>
+      </div>
+      <el-empty v-else description="暂无错题数据" />
+    </template>
+    <template #footer>
+      <el-button @click="notebookVisible = false">关闭</el-button>
+      <el-button type="primary" @click="downloadNotebook">导出Word</el-button>
+    </template>
+  </el-dialog>
+
+  <!-- Practice Dialog -->
+  <el-dialog v-model="practiceVisible" title="提升练习" width="700px" top="5vh">
+    <template v-if="practiceData">
+      <el-alert :title="practiceData.title || '个性化提升练习'" type="success" show-icon style="margin-bottom: 16px" />
+      <div v-if="practiceData.questions?.length">
+        <div v-for="(q, idx) in practiceData.questions" :key="idx" style="padding: 12px; margin-bottom: 12px; background: #f5f7fa; border-radius: 8px">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px">
+            <strong>{{ idx + 1 }}. {{ q.type || "题目" }}</strong>
+            <el-tag size="small">{{ q.difficulty || "中等" }}</el-tag>
+          </div>
+          <p style="margin: 4px 0; white-space: pre-wrap">{{ q.content }}</p>
+          <div v-if="q.knowledge_point" style="margin-top: 4px"><el-tag size="small" type="info">{{ q.knowledge_point }}</el-tag></div>
+        </div>
+      </div>
+      <el-empty v-else description="暂无练习数据" />
+    </template>
+    <template #footer>
+      <el-button @click="practiceVisible = false">关闭</el-button>
+      <el-button type="primary" @click="generateStudentPractice" :loading="ptLoading" v-if="practiceData?.questions?.length">重新生成</el-button>
+    </template>
+  </el-dialog>
 
   <AIChatDialog v-model:visible="aiChatVisible" context-type="student" :context-id="selectedStudentId" :context-label="studentData?.student_name" />
 

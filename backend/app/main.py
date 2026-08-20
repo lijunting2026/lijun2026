@@ -2,14 +2,16 @@
 from typing import AsyncGenerator
 import os
 import logging
+import logging.handlers
 import traceback
-from datetime import datetime
+from datetime import datetime as _dt
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1 import auth, schools, students, subjects, exams, scores, analysis, report
+from app.utils.seed_knowledge import seed_knowledge_points
+from app.api.v1 import auth, schools, students, subjects, exams, scores, analysis, report, exam_detail
 
 
 # Setup structured logging
@@ -59,6 +61,8 @@ class ErrorLogMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     init_db()
     print("Database tables created")
+    seed_knowledge_points()
+    print("Knowledge points seeded")
     yield
 
 
@@ -73,6 +77,20 @@ app.add_middleware(
 )
 
 app.add_middleware(ErrorLogMiddleware)
+
+
+@app.get("/health/llm")
+def health_llm():
+    """LLM 连通性测试"""
+    if not settings.LLM_ENABLED or not settings.LLM_API_KEY:
+        return {"status": "disabled", "detail": "未配置 LLM_API_KEY 或 LLM_ENABLED=false"}
+    try:
+        import httpx
+        base = settings.LLM_API_BASE.rstrip("/")
+        resp = httpx.get(f"{base}/models", headers={"Authorization": f"Bearer {settings.LLM_API_KEY}"}, timeout=5)
+        return {"status": "ok" if resp.status_code == 200 else "error", "status_code": resp.status_code}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
 @app.get("/health")
@@ -109,13 +127,9 @@ app.include_router(exams.router, prefix="/api/v1")
 app.include_router(scores.router, prefix="/api/v1")
 app.include_router(analysis.router, prefix="/api/v1")
 app.include_router(report.router, prefix="/api/v1")
+app.include_router(exam_detail.router, prefix="/api/v1")
 
 
 @app.get("/")
 def root():
     return {"message": f"{settings.APP_NAME} API", "version": settings.APP_VERSION}
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
