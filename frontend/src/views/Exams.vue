@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
-import { examApi, schoolApi, subjectApi } from "@/api"
-import type { Exam, Grade, Subject } from "@/types"
+import { examApi, schoolApi, subjectApi, scoringSchemeApi } from "@/api"
+import type { Exam, Grade, Subject, ScoringScheme, ExamSubjectScoringConfig, ScoreLine } from "@/types"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Delete } from "@element-plus/icons-vue"
 
@@ -124,6 +124,117 @@ function onDialogClose() {
   editingId.value = null
 }
 
+// ===== 赋分配置 =====
+const scoringDialog = ref(false)
+const scoringExamId = ref("")
+const scoringConfigs = ref<ExamSubjectScoringConfig[]>([])
+const schemes = ref<ScoringScheme[]>([])
+
+async function openScoringDialog(exam: any) {
+  scoringExamId.value = exam.id
+  try {
+    const [cfgRes, schemeRes] = await Promise.all([
+      examApi.getScoringConfig(exam.id),
+      scoringSchemeApi.list(),
+    ])
+    scoringConfigs.value = cfgRes.data as any
+    schemes.value = schemeRes.data as any
+    scoringDialog.value = true
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || err.message || "加载失败")
+  }
+}
+
+async function saveScoringConfig() {
+  if (!scoringExamId.value) return
+  try {
+    await examApi.updateScoringConfig(scoringExamId.value, scoringConfigs.value.map((c) => ({
+      exam_subject_id: c.exam_subject_id,
+      scoring_type: c.scoring_type,
+      scheme_id: c.scheme_id || null,
+      conversion_mode: c.conversion_mode,
+    })))
+    ElMessage.success("赋分配置已保存")
+    scoringDialog.value = false
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || err.message || "保存失败")
+  }
+}
+
+// ===== 分数线 =====
+const scoreLineDialog = ref(false)
+const scoreLineExamId = ref("")
+const scoreLineExamSubjects = ref<Array<{ subject_id: string; subject_name: string | null }>>([])
+const scoreLines = ref<ScoreLine[]>([])
+const scoreLineForm = ref({ line_name: "", line_type: "total", subject_id: null as string | null, score_value: 0, source: "official" })
+
+async function openScoreLineDialog(exam: any) {
+  scoreLineExamId.value = exam.id
+  scoreLineExamSubjects.value = (exam.exam_subjects || []).map((es: any) => ({
+    subject_id: es.subject_id,
+    subject_name: es.subject_name || "",
+  }))
+  scoreLines.value = []
+  try {
+    const res = await examApi.listScoreLines(exam.id)
+    scoreLines.value = res.data as any
+    scoreLineDialog.value = true
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || err.message || "加载失败")
+  }
+}
+
+function addScoreLine() {
+  if (!scoreLineForm.value.line_name || !scoreLineForm.value.score_value) {
+    ElMessage.warning("请填写线名和分数")
+    return
+  }
+  const subjectName = scoreLineExamSubjects.value.find((es) => es.subject_id === scoreLineForm.value.subject_id)?.subject_name || ""
+  scoreLines.value.push({
+    id: "",
+    exam_id: scoreLineExamId.value,
+    line_name: scoreLineForm.value.line_name,
+    line_type: scoreLineForm.value.line_type,
+    subject_id: scoreLineForm.value.line_type === "subject" ? scoreLineForm.value.subject_id : null,
+    subject_name: subjectName,
+    score_value: scoreLineForm.value.score_value,
+    source: scoreLineForm.value.source,
+  })
+  scoreLineForm.value = { line_name: "", line_type: "total", subject_id: null, score_value: 0, source: "official" }
+}
+
+function removeScoreLine(idx: number) {
+  scoreLines.value.splice(idx, 1)
+}
+
+async function saveScoreLines() {
+  try {
+    await examApi.saveScoreLines(scoreLineExamId.value, scoreLines.value.map((l) => ({
+      line_name: l.line_name,
+      line_type: l.line_type,
+      subject_id: l.subject_id,
+      score_value: l.score_value,
+      source: l.source,
+    })))
+    ElMessage.success("分数线已保存")
+    scoreLineDialog.value = false
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || err.message || "保存失败")
+  }
+}
+
+async function importScoreLines(file: File) {
+  if (!file) return
+  try {
+    const res = await examApi.importScoreLines(scoreLineExamId.value, file)
+    ElMessage.success(res.data?.message || "导入成功")
+    const reload = await examApi.listScoreLines(scoreLineExamId.value)
+    scoreLines.value = reload.data as any
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || err.message || "导入失败")
+  }
+}
+
 onMounted(loadData)
 </script>
 
@@ -155,9 +266,11 @@ onMounted(loadData)
         <el-table-column label="科目数" width="80">
           <template #default="{ row }">{{ row.exam_subjects?.length || 0 }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="120">
+        <el-table-column label="操作" width="260">
           <template #default="{ row }">
             <el-button size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button size="small" type="primary" plain @click="openScoringDialog(row)">赋分</el-button>
+            <el-button size="small" type="warning" plain @click="openScoreLineDialog(row)">分数线</el-button>
             <el-button size="small" type="danger" @click="remove(row.id)">删除</el-button>
           </template>
         </el-table-column>
@@ -203,6 +316,84 @@ onMounted(loadData)
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="save">{{ editingId ? '更新' : '创建' }}</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="scoringDialog" title="赋分配置" width="720px">
+      <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px"
+        title="赋分科目（选考）需选择方案；原始分科目（语数外）无需配置。自动=系统按方案换算，手动=人工录入赋分，可随时切换。" />
+      <el-table :data="scoringConfigs" stripe border size="small">
+        <el-table-column prop="subject_name" label="科目" />
+        <el-table-column label="计分方式" width="150">
+          <template #default="{ row }">
+            <el-select v-model="row.scoring_type" size="small">
+              <el-option label="原始分" value="raw" />
+              <el-option label="赋分" value="converted" />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column label="赋分方案" width="220">
+          <template #default="{ row }">
+            <el-select v-model="row.scheme_id" size="small" :disabled="row.scoring_type !== 'converted'" placeholder="选择方案" clearable>
+              <el-option v-for="sc in schemes" :key="sc.id" :label="sc.name" :value="sc.id" />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column label="换算模式" width="150">
+          <template #default="{ row }">
+            <el-select v-model="row.conversion_mode" size="small" :disabled="row.scoring_type !== 'converted'">
+              <el-option label="自动换算" value="auto" />
+              <el-option label="手动赋分" value="manual" />
+            </el-select>
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="scoringDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveScoringConfig">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="scoreLineDialog" title="分数线" width="780px">
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap">
+        <el-input v-model="scoreLineForm.line_name" placeholder="线名（如：本科线/特控线）" style="width: 150px" />
+        <el-select v-model="scoreLineForm.line_type" style="width: 110px">
+          <el-option label="总分线" value="total" />
+          <el-option label="单科线" value="subject" />
+        </el-select>
+        <el-select v-model="scoreLineForm.subject_id" placeholder="科目" clearable style="width: 120px" :disabled="scoreLineForm.line_type !== 'subject'">
+          <el-option v-for="es in scoreLineExamSubjects" :key="es.subject_id" :label="es.subject_name" :value="es.subject_id" />
+        </el-select>
+        <el-input-number v-model="scoreLineForm.score_value" :min="0" :max="900" style="width: 120px" />
+        <el-select v-model="scoreLineForm.source" style="width: 100px">
+          <el-option label="官方" value="official" />
+          <el-option label="参考" value="reference" />
+          <el-option label="自定义" value="custom" />
+        </el-select>
+        <el-button type="primary" size="small" @click="addScoreLine">添加</el-button>
+      </div>
+      <el-table :data="scoreLines" stripe border size="small">
+        <el-table-column prop="line_name" label="线名" />
+        <el-table-column label="类型" width="80">
+          <template #default="{ row }">{{ row.line_type === 'total' ? '总分线' : '单科线' }}</template>
+        </el-table-column>
+        <el-table-column prop="subject_name" label="科目" width="100" />
+        <el-table-column prop="score_value" label="分数" width="80" />
+        <el-table-column prop="source" label="来源" width="80" />
+        <el-table-column label="操作" width="70">
+          <template #default="{ $index }">
+            <el-button size="small" type="danger" @click="removeScoreLine($index)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div style="margin-top: 12px">
+        <el-upload :show-file-list="false" :auto-upload="false" :on-change="(f: any) => importScoreLines(f.raw)" accept=".xlsx,.xls">
+          <el-button size="small" type="warning" plain>Excel 批量导入分数线</el-button>
+        </el-upload>
+      </div>
+      <template #footer>
+        <el-button @click="scoreLineDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveScoreLines">保存</el-button>
       </template>
     </el-dialog>
   </div>

@@ -13,6 +13,13 @@ class SubjectStats(BaseModel):
     excellent_rate: float
     std_dev: float
     avg_score_rate: float
+    converted_avg_score: Optional[float] = None
+    converted_max_score: Optional[float] = None
+    converted_min_score: Optional[float] = None
+    converted_pass_rate: Optional[float] = None
+    converted_excellent_rate: Optional[float] = None
+    converted_std_dev: Optional[float] = None
+    converted_avg_score_rate: Optional[float] = None
 
 class ClassSubjectStats(BaseModel):
     class_id: str
@@ -25,6 +32,7 @@ class ExamAnalysisResponse(BaseModel):
     exam_name: str
     exam_date: Optional[str] = None
     total_students: int
+    score_mode: str = "auto"
     grade_stats: List[SubjectStats]
     class_stats: List[ClassSubjectStats]
 

@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.database import init_db
 from app.utils.seed_knowledge import seed_knowledge_points
 from app.utils.seed_scoring import seed_scoring_schemes
-from app.api.v1 import auth, schools, students, subjects, exams, scores, analysis, report, exam_detail
+from app.api.v1 import auth, schools, students, subjects, exams, scores, analysis, report, exam_detail, scoring, knowledge_import
 
 
 # Setup structured logging
@@ -130,7 +130,9 @@ app.include_router(exams.router, prefix="/api/v1")
 app.include_router(scores.router, prefix="/api/v1")
 app.include_router(analysis.router, prefix="/api/v1")
 app.include_router(report.router, prefix="/api/v1")
+app.include_router(knowledge_import.router, prefix="/api/v1")
 app.include_router(exam_detail.router, prefix="/api/v1")
+app.include_router(scoring.router, prefix="/api/v1")
 
 
 @app.get("/")

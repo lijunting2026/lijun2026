@@ -35,9 +35,27 @@ router = APIRouter(prefix="/analysis", tags=["数据分析"])
 
 
 @router.get("/exam/{exam_id}", response_model=ExamAnalysisResponse)
-def analyze_exam(exam_id: str, db: Session = Depends(get_db)):
+def analyze_exam(exam_id: str, score_mode: str = "auto", db: Session = Depends(get_db)):
     service = AnalysisService(db)
-    return service.get_exam_analysis(exam_id)
+    return service.get_exam_analysis(exam_id, score_mode)
+
+
+@router.get("/exam/{exam_id}/line-stats")
+def get_line_stats(exam_id: str, score_mode: str = "auto", db: Session = Depends(get_db)):
+    service = AnalysisService(db)
+    result = service.get_line_stats(exam_id, score_mode)
+    if not result:
+        raise HTTPException(status_code=404, detail="考试不存在")
+    return result
+
+
+@router.get("/exam/{exam_id}/one-point-table")
+def get_one_point_table(exam_id: str, score_mode: str = "auto", db: Session = Depends(get_db)):
+    service = AnalysisService(db)
+    result = service.get_one_point_table(exam_id, score_mode)
+    if not result:
+        raise HTTPException(status_code=404, detail="考试不存在")
+    return result
 
 
 @router.get("/distribution/{exam_subject_id}", response_model=DistributionResponse)

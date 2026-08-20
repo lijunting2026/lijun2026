@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
-import { ref, onMounted, computed } from "vue"
+import { ref, onMounted, computed, watch } from "vue"
 import { analysisApi, examApi, subjectApi, schoolApi } from "@/api"
-import type { Exam, Subject, Grade, ExamAnalysis, SubjectStats, ScoreDistribution } from "@/types"
+import type { Exam, Subject, Grade, ExamAnalysis, SubjectStats, ScoreDistribution, LineStats, OnePointTable } from "@/types"
 import { ElMessage } from "element-plus"
 import AIChatDialog from "@/components/AIChatDialog.vue"
 import ChartBar from "@/components/ChartBar.vue"
@@ -16,6 +16,14 @@ const selectedExamId = ref("")
 const analysis = ref<ExamAnalysis | null>(null)
 const distributions = ref<Record<string, ScoreDistribution[]>>({})
 const loading = ref(false)
+const scoreMode = ref<"auto" | "raw" | "converted" | "both">("auto")
+const lineStats = ref<LineStats | null>(null)
+const onePoint = ref<OnePointTable | null>(null)
+
+const scoreModeLabel = computed(() => {
+  const map: Record<string, string> = { auto: "自动", raw: "原始分", converted: "赋分", both: "双轨" }
+  return map[scoreMode.value] || scoreMode.value
+})
 const aiChatVisible = ref(false)
 const showCharts = ref(false)
 const kpData = ref<any[]>([])
@@ -162,8 +170,20 @@ async function analyze() {
   loading.value = true
   showCharts.value = false
   try {
-    const res = await analysisApi.examAnalysis(selectedExamId.value)
+    const res = await analysisApi.examAnalysis(selectedExamId.value, scoreMode.value)
     analysis.value = res.data
+    try {
+      const ls = await analysisApi.lineStats(selectedExamId.value, scoreMode.value)
+      lineStats.value = ls.data
+    } catch {
+      lineStats.value = null
+    }
+    try {
+      const op = await analysisApi.onePointTable(selectedExamId.value, scoreMode.value)
+      onePoint.value = op.data
+    } catch {
+      onePoint.value = null
+    }
 
     const distPromises = (res.data.grade_stats || []).slice(0, 3).map(async (gs: SubjectStats) => {
       const exam = exams.value.find((e) => e.id === selectedExamId.value)
@@ -188,6 +208,12 @@ async function analyze() {
     loading.value = false
   }
 }
+
+watch(scoreMode, () => {
+  if (analysis.value && selectedExamId.value) {
+    analyze()
+  }
+})
 
 onMounted(() => {
   loadGrades()
@@ -238,6 +264,12 @@ function onGradeChange() {
             <el-select v-model="selectedExamId" placeholder="选择考试" filterable style="width: 240px">
               <el-option v-for="e in exams" :key="e.id" :label="e.name" :value="e.id" />
             </el-select>
+            <el-radio-group v-model="scoreMode" size="small" :disabled="!selectedExamId">
+              <el-radio-button label="auto">自动</el-radio-button>
+              <el-radio-button label="raw">原始分</el-radio-button>
+              <el-radio-button label="converted">赋分</el-radio-button>
+              <el-radio-button label="both">双轨</el-radio-button>
+            </el-radio-group>
             <el-button type="primary" :disabled="!selectedExamId" :loading="loading" @click="analyze">开始分析</el-button>
             <el-button v-if="analysis" type="success" @click="exportAnalysis">Excel</el-button>
               <el-button v-if="analysis" type="primary" @click="exportWord">Word</el-button>
@@ -301,6 +333,68 @@ function onGradeChange() {
         </el-row>
 
         <!-- Data tables -->
+        <el-card shadow="hover" style="margin-top: 16px" v-if="lineStats && (lineStats.total_lines.length || lineStats.subject_lines.length || lineStats.dual_lines.length)">
+          <template #header>
+            <span style="font-weight: 600">上线统计（口径：{{ scoreModeLabel }}）</span>
+            <span style="margin-left: 8px; color: #909399; font-size: 12px">参考人数 {{ lineStats.total_students }}</span>
+          </template>
+          <el-table v-if="lineStats.total_lines.length" :data="lineStats.total_lines" stripe border size="small">
+            <el-table-column prop="line_name" label="总分线" />
+            <el-table-column prop="score_value" label="分数线" width="90" />
+            <el-table-column prop="source" label="来源" width="90" />
+            <el-table-column prop="count" label="上线人数" width="90" />
+            <el-table-column prop="rate" label="上线率" width="90">
+              <template #default="{ row }">{{ row.rate }}%</template>
+            </el-table-column>
+            <el-table-column label="各班">
+              <template #default="{ row }">
+                <span v-for="c in row.classes" :key="c.class_id" style="margin-right: 10px">
+                  {{ c.class_name }}: {{ c.count }}/{{ c.total }} ({{ c.rate }}%)
+                </span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-table v-if="lineStats.subject_lines.length" :data="lineStats.subject_lines" stripe border size="small" style="margin-top: 12px">
+            <el-table-column prop="line_name" label="单科线" />
+            <el-table-column prop="subject_name" label="科目" width="100" />
+            <el-table-column prop="score_value" label="分数线" width="90" />
+            <el-table-column prop="count" label="上线人数" width="90" />
+            <el-table-column prop="rate" label="上线率" width="90">
+              <template #default="{ row }">{{ row.rate }}%</template>
+            </el-table-column>
+            <el-table-column label="各班">
+              <template #default="{ row }">
+                <span v-for="c in row.classes" :key="c.class_id" style="margin-right: 10px">
+                  {{ c.class_name }}: {{ c.count }}/{{ c.total }} ({{ c.rate }}%)
+                </span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-table v-if="lineStats.dual_lines.length" :data="lineStats.dual_lines" stripe border size="small" style="margin-top: 12px">
+            <el-table-column prop="total_line_name" label="总分线" />
+            <el-table-column prop="subject_line_name" label="单科线" />
+            <el-table-column prop="subject_name" label="科目" width="100" />
+            <el-table-column prop="count" label="双上线人数" width="100" />
+            <el-table-column prop="rate" label="双上线率" width="100">
+              <template #default="{ row }">{{ row.rate }}%</template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+
+        <el-card shadow="hover" style="margin-top: 16px" v-if="onePoint && onePoint.items.length">
+          <template #header>
+            <span style="font-weight: 600">一分一段表（口径：{{ scoreModeLabel }}，{{ onePoint.total_students }} 人）</span>
+          </template>
+          <el-table :data="onePoint.items" stripe border size="small" max-height="360">
+            <el-table-column prop="score" label="分数" width="90" />
+            <el-table-column prop="count" label="人数" width="90" />
+            <el-table-column prop="cumulative" label="累计人数" width="100" />
+            <el-table-column prop="cumulative_rate" label="累计占比">
+              <template #default="{ row }">{{ row.cumulative_rate }}%</template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+
         <el-card shadow="hover" style="margin-top: 16px">
           <template #header><span style="font-weight: 600">年级总体统计表</span></template>
           <el-table :data="analysis.grade_stats" stripe border>
@@ -318,6 +412,13 @@ function onGradeChange() {
               <template #default="{ row }">{{ row.excellent_rate }}%</template>
             </el-table-column>
             <el-table-column prop="std_dev" label="标准差" width="80" />
+            <el-table-column v-if="analysis.score_mode === 'both'" prop="converted_avg_score" label="赋分平均" width="90" />
+            <el-table-column v-if="analysis.score_mode === 'both'" prop="converted_avg_score_rate" label="赋分得分率" width="100">
+              <template #default="{ row }">{{ row.converted_avg_score_rate }}%</template>
+            </el-table-column>
+            <el-table-column v-if="analysis.score_mode === 'both'" prop="converted_pass_rate" label="赋分及格率" width="100">
+              <template #default="{ row }">{{ row.converted_pass_rate }}%</template>
+            </el-table-column>
           </el-table>
         </el-card>
 

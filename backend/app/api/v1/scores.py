@@ -76,6 +76,8 @@ def list_scores(
             "exam_subject_id": str(s.exam_subject_id),
             "subject_name": subj.name if subj else None,
             "score_value": s.score_value,
+            "converted_score": s.converted_score,
+            "converted_source": s.converted_source,
             "status": s.status,
             "class_id": str(s.class_id) if s.class_id else None,
             "class_name": cls.name if cls else None,
@@ -92,9 +94,11 @@ def batch_create_scores(data: ScoreBatchCreate, db: Session = Depends(get_db)):
     更新已有记录：保留原有的 class_id（成绩归属不随转班改变）。
     """
     count = 0
+    esid_set = set()
     for s in data.scores:
         sid = uuid.UUID(s.student_id)
         esid = uuid.UUID(s.exam_subject_id)
+        esid_set.add(esid)
         student_class_id = _get_student_current_class_id(db, sid)
 
         existing = (
@@ -105,6 +109,9 @@ def batch_create_scores(data: ScoreBatchCreate, db: Session = Depends(get_db)):
         if existing:
             existing.score_value = s.score_value
             existing.status = s.status
+            if s.converted_score is not None:
+                existing.converted_score = s.converted_score
+                existing.converted_source = s.converted_source
             # 注意：不更新 class_id —— 成绩归属考试时的班级，不随转班改变
         else:
             db.add(
@@ -114,11 +121,25 @@ def batch_create_scores(data: ScoreBatchCreate, db: Session = Depends(get_db)):
                     score_value=s.score_value,
                     status=s.status,
                     class_id=student_class_id,
+                    converted_score=s.converted_score,
+                    converted_source=s.converted_source,
                 )
             )
         count += 1
     db.commit()
-    return {"message": "成功保存 %d 条成绩" % count}
+    # 自动换算：赋分科目(auto模式)缺赋分时按方案自动换算
+    from app.services.analytics.score_conversion_service import ScoreConversionService
+    service = ScoreConversionService(db)
+    auto_count = 0
+    for esid in esid_set:
+        es = db.query(ExamSubject).filter(ExamSubject.id == esid).first()
+        if not es or es.scoring_type != "converted" or es.conversion_mode != "auto":
+            continue
+        missing = db.query(Score).filter(Score.exam_subject_id == esid, Score.converted_score.is_(None)).count()
+        if missing > 0:
+            service.convert_exam_subject(esid)
+            auto_count += 1
+    return {"message": "成功保存 %d 条成绩" % count, "auto_converted_subjects": auto_count}
 
 
 
@@ -475,3 +496,16 @@ def score_summary(
         "overall_avg": overall_avg,
         "overall_pass_rate": overall_pass_rate,
     }
+
+@router.post("/{exam_subject_id}/convert")
+def convert_scores(exam_subject_id: str, force: bool = False, db: Session = Depends(get_db)):
+    """手动触发赋分换算/重算。force=True 时覆盖已有赋分。"""
+    from app.services.analytics.score_conversion_service import ScoreConversionService
+    es = db.query(ExamSubject).filter(ExamSubject.id == _try_uuid(exam_subject_id)).first()
+    if not es:
+        raise HTTPException(status_code=404, detail="考试科目不存在")
+    try:
+        service = ScoreConversionService(db)
+        return service.convert_exam_subject(es.id, force=force)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

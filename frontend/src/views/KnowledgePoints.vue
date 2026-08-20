@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue"
-import { subjectApi, knowledgeApi } from "@/api"
+import { subjectApi, knowledgeApi, knowledgeImportApi } from "@/api"
 import type { Subject, KnowledgePoint } from "@/types"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Plus, Edit, Delete } from "@element-plus/icons-vue"
@@ -102,6 +102,129 @@ function renderTree(nodes: any[], level = 0): any[] {
 
 const flatTree = computed(() => renderTree(treeData.value))
 
+// ===== 智能导入 =====
+const importDialog = ref(false)
+const importMode = ref("text")
+const importSourceName = ref("")
+const importTextContent = ref("")
+const previewItems = ref<any[]>([])
+const previewMeta = ref({ item_count: 0, exists_count: 0, duplicate_count: 0 })
+const importLoading = ref(false)
+const sourceDialog = ref(false)
+const sources = ref<any[]>([])
+const importFileName = ref("")
+
+function openImportDialog() {
+  importDialog.value = true
+  importMode.value = "text"
+  importSourceName.value = ""
+  importTextContent.value = ""
+  importFileName.value = ""
+  previewItems.value = []
+  previewMeta.value = { item_count: 0, exists_count: 0, duplicate_count: 0 }
+}
+
+async function onImportFile(file: File) {
+  if (!file || !selectedSubjectId.value) return
+  importFileName.value = file.name
+  importLoading.value = true
+  try {
+    const res = importMode.value === "ai"
+      ? await knowledgeImportApi.importAi(selectedSubjectId.value, file, importSourceName.value)
+      : await knowledgeImportApi.importExcel(selectedSubjectId.value, file, importSourceName.value)
+    applyPreview(res.data)
+    ElMessage.success("解析完成，请核对预览后确认导入")
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || "解析失败")
+  } finally {
+    importLoading.value = false
+  }
+}
+
+async function parseTextImport() {
+  if (!importTextContent.value.trim()) {
+    ElMessage.warning("请粘贴教材/课标目录文本")
+    return
+  }
+  importLoading.value = true
+  try {
+    const res = await knowledgeImportApi.importText(selectedSubjectId.value, importTextContent.value, importSourceName.value)
+    applyPreview(res.data)
+    ElMessage.success("解析完成，请核对预览后确认导入")
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || "解析失败")
+  } finally {
+    importLoading.value = false
+  }
+}
+
+function applyPreview(data: any) {
+  previewItems.value = data.items || []
+  previewMeta.value = {
+    item_count: data.item_count || 0,
+    exists_count: data.exists_count || 0,
+    duplicate_count: data.duplicate_count || 0,
+  }
+}
+
+async function commitImport() {
+  if (!previewItems.value.length) return
+  importLoading.value = true
+  try {
+    const res = await knowledgeImportApi.commitPreview(
+      selectedSubjectId.value,
+      previewItems.value,
+      importSourceName.value,
+      importMode.value === "excel" ? "excel" : importMode.value === "ai" ? "textbook" : "curriculum",
+      importMode.value === "ai" ? "ai" : importMode.value === "excel" ? "template" : "rules",
+    )
+    ElMessage.success(res.data?.message || "导入成功")
+    importDialog.value = false
+    await loadKnowledgePoints()
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || "导入失败")
+  } finally {
+    importLoading.value = false
+  }
+}
+
+function renderPreviewTree(nodes: any[], level = 0): any[] {
+  const result: any[] = []
+  for (const node of nodes) {
+    result.push({ ...node, _level: level })
+    if (node.children?.length) {
+      result.push(...renderPreviewTree(node.children, level + 1))
+    }
+  }
+  return result
+}
+
+const flatPreview = computed(() => renderPreviewTree(previewItems.value))
+
+async function openSourceDialog() {
+  sourceDialog.value = true
+  await loadSources()
+}
+
+async function loadSources() {
+  try {
+    const res = await knowledgeImportApi.listSources(selectedSubjectId.value || undefined)
+    sources.value = res.data
+  } catch { /* ignore */ }
+}
+
+async function removeSource(id: string) {
+  await ElMessageBox.confirm("删除来源将同时删除该批次导入的知识点，确认？")
+  try {
+    await knowledgeImportApi.deleteSource(id)
+    ElMessage.success("已删除")
+    await loadSources()
+    await loadKnowledgePoints()
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.detail || "删除失败")
+  }
+}
+
 onMounted(loadSubjects)
 </script>
 
@@ -123,6 +246,8 @@ onMounted(loadSubjects)
             <el-button type="primary" :icon="Plus" @click="openCreate()" :disabled="!selectedSubjectId">
               添加知识点
             </el-button>
+            <el-button type="success" @click="openImportDialog" :disabled="!selectedSubjectId">智能导入</el-button>
+            <el-button type="warning" plain @click="openSourceDialog" :disabled="!selectedSubjectId">来源管理</el-button>
           </div>
         </div>
       </template>
@@ -166,6 +291,76 @@ onMounted(loadSubjects)
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="save">确定</el-button>
       </template>
+    </el-dialog>
+
+    <el-dialog v-model="importDialog" title="知识点智能导入" width="860px" top="6vh">
+      <el-form label-width="80px">
+        <el-form-item label="导入方式">
+          <el-radio-group v-model="importMode">
+            <el-radio-button label="text">目录文本</el-radio-button>
+            <el-radio-button label="excel">Excel 模板</el-radio-button>
+            <el-radio-button label="ai">AI 抽取</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="来源名称">
+          <el-input v-model="importSourceName" placeholder="如：人教版必修第一册 / 2022课标" style="width: 300px" />
+        </el-form-item>
+        <el-form-item v-if="importMode === 'text'" label="目录文本">
+          <el-input v-model="importTextContent" type="textarea" :rows="8"
+            placeholder="粘贴教材/课标目录文本，如：&#10;第一章 集合&#10;一、集合的含义与表示&#10;1. 集合的概念&#10;（1）元素的特性" />
+        </el-form-item>
+        <el-form-item v-if="importMode !== 'text'" label="选择文件">
+          <el-upload :show-file-list="false" :auto-upload="false" :on-change="(f: any) => onImportFile(f.raw)"
+            :accept="importMode === 'ai' ? '.docx,.pdf,.txt,.md' : '.xlsx,.xls'">
+            <el-button type="primary" plain>{{ importMode === 'ai' ? '选择 Word/PDF/文本' : '选择 Excel 文件' }}</el-button>
+          </el-upload>
+          <span style="margin-left: 12px; color: #909399">{{ importFileName }}</span>
+          <div style="width: 100%; margin-top: 4px">
+            <el-link v-if="importMode === 'excel'" type="primary" :href="knowledgeImportApi.templateUrl()" target="_blank" :underline="false">下载导入模板</el-link>
+            <span v-if="importMode === 'ai'" style="color: #909399; font-size: 12px">未配置 LLM 时自动回退规则解析；扫描版 PDF 暂不支持（OCR 接口预留）</span>
+          </div>
+        </el-form-item>
+        <el-form-item v-if="importMode === 'text'" label=" ">
+          <el-button type="primary" :loading="importLoading" @click="parseTextImport">解析预览</el-button>
+        </el-form-item>
+      </el-form>
+
+      <div v-if="previewItems.length" style="margin-bottom: 8px; color: #606266; font-size: 13px">
+        共识别 <b>{{ previewMeta.item_count }}</b> 条知识点；
+        与现有库同名 <b style="color: #E6A23C">{{ previewMeta.exists_count }}</b> 条（将合并）；
+        批次内重复 <b style="color: #F56C6C">{{ previewMeta.duplicate_count }}</b> 条
+      </div>
+      <el-table v-if="previewItems.length" :data="flatPreview" stripe border size="small" max-height="320">
+        <el-table-column label="知识点（按层级）" min-width="320">
+          <template #default="{ row }">
+            <div :style="{ paddingLeft: row._level * 22 + 'px', display: 'flex', alignItems: 'center', gap: '6px' }">
+              <span :style="{ fontWeight: row._level === 0 ? 600 : 400 }">{{ row.name }}</span>
+              <el-tag v-if="row.exists" size="small" type="warning">库中已有-合并</el-tag>
+              <el-tag v-else-if="row.duplicate_in_batch" size="small" type="danger">批次重复</el-tag>
+              <el-tag v-else size="small" type="success">新增</el-tag>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <template #footer>
+        <el-button @click="importDialog = false">取消</el-button>
+        <el-button type="primary" :disabled="!previewItems.length" :loading="importLoading" @click="commitImport">确认导入</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="sourceDialog" title="导入来源管理" width="640px">
+      <el-table :data="sources" stripe border size="small" empty-text="暂无导入记录">
+        <el-table-column prop="source_name" label="来源名称" min-width="160" />
+        <el-table-column prop="source_type" label="类型" width="90" />
+        <el-table-column prop="import_mode" label="模式" width="90" />
+        <el-table-column prop="created_at" label="导入时间" width="170" />
+        <el-table-column label="操作" width="80">
+          <template #default="{ row }">
+            <el-button size="small" type="danger" @click="removeSource(row.id)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-dialog>
   </div>
 </template>

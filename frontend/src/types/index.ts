@@ -106,6 +106,13 @@ export interface SubjectStats {
   excellent_rate: number
   std_dev: number
   avg_score_rate: number
+  converted_avg_score?: number | null
+  converted_max_score?: number | null
+  converted_min_score?: number | null
+  converted_pass_rate?: number | null
+  converted_excellent_rate?: number | null
+  converted_std_dev?: number | null
+  converted_avg_score_rate?: number | null
 }
 
 export interface ClassSubjectStats {
@@ -120,8 +127,106 @@ export interface ExamAnalysis {
   exam_name: string
   exam_date: string | null
   total_students: number
+  score_mode?: string
   grade_stats: SubjectStats[]
   class_stats: ClassSubjectStats[]
+}
+
+// ===== Scoring (赋分) =====
+export interface ScoringBracket {
+  rank_start: number
+  rank_end: number
+  score_start: number
+  score_end: number
+}
+
+export interface ScoringScheme {
+  id: string
+  name: string
+  description?: string
+  brackets: ScoringBracket[]
+  is_preset: boolean
+  sort_order?: number
+  created_at?: string | null
+}
+
+export interface ExamSubjectScoringConfig {
+  exam_subject_id: string
+  subject_id: string
+  subject_name?: string
+  scoring_type: string
+  scheme_id: string | null
+  scheme_name?: string | null
+  conversion_mode: string
+}
+
+export interface ScoreLine {
+  id: string
+  exam_id: string
+  line_name: string
+  line_type: string
+  subject_id: string | null
+  subject_name?: string | null
+  score_value: number
+  source: string
+}
+
+export interface LineClassBreakdown {
+  class_id: string | null
+  class_name: string
+  count: number
+  total: number
+  rate: number
+}
+
+export interface LineStat {
+  line_id: string
+  line_name: string
+  score_value: number
+  source: string
+  count: number
+  total: number
+  rate: number
+  classes: LineClassBreakdown[]
+}
+
+export interface SubjectLineStat extends LineStat {
+  subject_id?: string | null
+  subject_name?: string
+}
+
+export interface DualLineStat {
+  total_line_id: string
+  total_line_name: string
+  subject_line_id: string
+  subject_line_name: string
+  subject_name: string
+  count: number
+  total: number
+  rate: number
+}
+
+export interface LineStats {
+  exam_id: string
+  score_mode: string
+  total_students: number
+  total_lines: LineStat[]
+  subject_lines: SubjectLineStat[]
+  dual_lines: DualLineStat[]
+}
+
+export interface OnePointItem {
+  score: number
+  count: number
+  cumulative: number
+  cumulative_rate: number
+}
+
+export interface OnePointTable {
+  exam_id: string
+  score_mode: string
+  total_students: number
+  items: OnePointItem[]
 }
 
 export interface ScoreDistribution {

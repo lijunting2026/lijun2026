@@ -7,6 +7,8 @@ class ScoreCreate(BaseModel):
     exam_subject_id: str
     score_value: float
     status: str = "normal"
+    converted_score: float = None
+    converted_source: str = "official"
 
 class ScoreBatchCreate(BaseModel):
     exam_id: str

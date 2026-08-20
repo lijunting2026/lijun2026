@@ -16,6 +16,12 @@ import type {
   StudentScoreData,
   DashboardData,
   ClassOverview,
+  ScoringScheme,
+  ScoringBracket,
+  ExamSubjectScoringConfig,
+  ScoreLine,
+  LineStats,
+  OnePointTable,
 } from "@/types"
 
 const api = axios.create({
@@ -153,6 +159,26 @@ export const examApi = {
   delete(id: string) {
     return api.delete(`/exams/${id}`)
   },
+  getScoringConfig(id: string) {
+    return api.get<ExamSubjectScoringConfig[]>(`/exams/${id}/scoring-config`)
+  },
+  updateScoringConfig(id: string, subjects: Array<{ exam_subject_id: string; scoring_type: string; scheme_id?: string | null; conversion_mode: string }>) {
+    return api.put(`/exams/${id}/scoring-config`, { subjects })
+  },
+  listScoreLines(id: string) {
+    return api.get<ScoreLine[]>(`/exams/${id}/score-lines`)
+  },
+  saveScoreLines(id: string, lines: Array<{ line_name: string; line_type: string; subject_id?: string | null; score_value: number; source?: string }>) {
+    return api.post(`/exams/${id}/score-lines`, lines)
+  },
+  importScoreLinesUrl(id: string) {
+    return `/api/v1/exams/${id}/score-lines/import`
+  },
+  importScoreLines(id: string, file: File) {
+    const fd = new FormData()
+    fd.append("file", file)
+    return api.post(`/exams/${id}/score-lines/import`, fd)
+  },
 }
 
 // ========== Scores ===========
@@ -163,8 +189,27 @@ export const scoreApi = {
   list(params?: { exam_id?: string; class_id?: string; grade_id?: string; date_from?: string; date_to?: string; skip?: number; limit?: number }) {
     return api.get<PaginatedResponse<ScoreRecord>>("/scores", { params })
   },
-  batchCreate(data: { exam_id: string; scores: Array<{ student_id: string; exam_subject_id: string; score_value: number; status?: string }> }) {
+  batchCreate(data: { exam_id: string; scores: Array<{ student_id: string; exam_subject_id: string; score_value: number; status?: string; converted_score?: number | null }> }) {
     return api.post("/scores/batch", data)
+  },
+  convertSubject(examSubjectId: string, force = false) {
+    return api.post(`/scores/${examSubjectId}/convert`, null, { params: { force } })
+  },
+}
+
+// ========== Scoring Schemes ===========
+export const scoringSchemeApi = {
+  list(presetOnly = false) {
+    return api.get<ScoringScheme[]>("/scoring-schemes", { params: { preset_only: presetOnly } })
+  },
+  create(data: { name: string; description?: string; brackets: ScoringBracket[]; sort_order?: number }) {
+    return api.post<ScoringScheme>("/scoring-schemes", data)
+  },
+  update(id: string, data: { name?: string; description?: string; brackets?: ScoringBracket[]; sort_order?: number }) {
+    return api.put<ScoringScheme>(`/scoring-schemes/${id}`, data)
+  },
+  remove(id: string) {
+    return api.delete(`/scoring-schemes/${id}`)
   },
 }
 
@@ -204,8 +249,14 @@ export const reportApi = {
 }
 
 export const analysisApi = {
-  examAnalysis(examId: string) {
-    return api.get<ExamAnalysis>("/analysis/exam/" + examId)
+  examAnalysis(examId: string, scoreMode = "auto") {
+    return api.get<ExamAnalysis>("/analysis/exam/" + examId, { params: { score_mode: scoreMode } })
+  },
+  lineStats(examId: string, scoreMode = "auto") {
+    return api.get<LineStats>("/analysis/exam/" + examId + "/line-stats", { params: { score_mode: scoreMode } })
+  },
+  onePointTable(examId: string, scoreMode = "auto") {
+    return api.get<OnePointTable>("/analysis/exam/" + examId + "/one-point-table", { params: { score_mode: scoreMode } })
   },
   scoreDistribution(examSubjectId: string, bins?: number) {
     return api.get<DistributionResponse>("/analysis/distribution/" + examSubjectId, { params: { bins } })
@@ -286,6 +337,49 @@ export const knowledgeApi = {
     }>
   }) {
     return api.post("/knowledge-points/import-blueprint", data)
+  },
+}
+
+export const knowledgeImportApi = {
+  templateUrl() {
+    return "/api/v1/knowledge-points/import/template.xlsx"
+  },
+  importExcel(subjectId: string, file: File, sourceName?: string) {
+    const fd = new FormData()
+    fd.append("file", file)
+    fd.append("subject_id", subjectId)
+    if (sourceName) fd.append("source_name", sourceName)
+    return api.post("/knowledge-points/import/excel", fd)
+  },
+  importText(subjectId: string, text: string, sourceName?: string, sourceType = "curriculum") {
+    return api.post("/knowledge-points/import/text", {
+      subject_id: subjectId,
+      source_name: sourceName || "",
+      text,
+      source_type: sourceType,
+    })
+  },
+  importAi(subjectId: string, file: File, sourceName?: string) {
+    const fd = new FormData()
+    fd.append("file", file)
+    fd.append("subject_id", subjectId)
+    if (sourceName) fd.append("source_name", sourceName)
+    return api.post("/knowledge-points/import/ai", fd)
+  },
+  commitPreview(subjectId: string, items: any[], sourceName?: string, sourceType = "curriculum", importMode = "rules") {
+    return api.post("/knowledge-points/import/preview", {
+      subject_id: subjectId,
+      source_name: sourceName || "",
+      source_type: sourceType,
+      import_mode: importMode,
+      items,
+    })
+  },
+  listSources(subjectId?: string) {
+    return api.get<any[]>("/knowledge-points/sources", { params: { subject_id: subjectId } })
+  },
+  deleteSource(id: string) {
+    return api.delete(`/knowledge-points/sources/${id}`)
   },
 }
 
